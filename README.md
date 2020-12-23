@@ -60,6 +60,7 @@ Note:
 * dynamically assign sizes to layout items based on page size
 * colour-code polygons based on a given data attribute/column
 * add data attribute as polygon labels
+* resolve CRS issues
 * Design and implement GUI for all user input
 
 

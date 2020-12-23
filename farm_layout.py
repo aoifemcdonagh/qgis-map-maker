@@ -55,21 +55,6 @@ def get_layer(name, proj):
     return layer
 
 
-def get_fonts():
-    """
-    Function which returns fonts QtGui.QFont objects
-    todo optionally base fonts on layout size
-    :return:
-    """
-
-    content = QtGui.QFont()
-    header = QtGui.QFont()
-    content.setPointSize(36)
-    header.setPointSize(40)
-
-    return [content, header]
-
-
 def get_layout(name, proj):
     manager = proj.layoutManager()
 
@@ -95,6 +80,39 @@ def get_layout(name, proj):
     manager.addLayout(layout)
 
     return layout
+
+
+def set_polygon_colour(l):
+    """
+    function which will render colours of polygons based on user input...
+    todo: if no colour coding specified, apply default white polygon boundaries and no fill
+    todo: implement various colour coding schemes for different mineral types
+        - create another utilities file for rendering layers based on Farmeye-specific use cases
+    :param l:
+    :return:
+    """
+    fields = l.getFeatures()
+
+    # create renderer to colour polygons in layer
+    symbol = QgsSymbol.defaultSymbol(l.geometryType())
+    renderer = QgsFeatureRenderer(symbol)
+
+    new_layer.setRenderer(renderer)
+
+
+def get_fonts():
+    """
+    Function which returns fonts QtGui.QFont objects
+    todo optionally base fonts on layout size
+    :return:
+    """
+
+    content = QtGui.QFont()
+    header = QtGui.QFont()
+    content.setPointSize(36)
+    header.setPointSize(40)
+
+    return [content, header]
 
 
 if __name__ == "__main__":
@@ -126,7 +144,7 @@ if __name__ == "__main__":
     ymin = ext.yMinimum()
     ymax = ext.yMaximum()
 
-    # adding map to layout
+    # creating a map based on layout
     map = QgsLayoutItemMap(layout)
     # I have no idea what this does, but it is necessary
     map.setRect(20, 20, 20, 20)
@@ -134,7 +152,7 @@ if __name__ == "__main__":
     # defines map extent using map coordinates
     rectangle = QgsRectangle(xmin, ymin, xmax, ymax)
     map.setExtent(rectangle)
-    map.setBackgroundColor(QtGui.QColor(0, 255, 0, 100))
+    map.setBackgroundColor(QtGui.QColor(0, 255, 0, 100))  # arbitrary background colour so white polygons are visible
     layout.addLayoutItem(map)
 
     # Create a table attached to specific layout
