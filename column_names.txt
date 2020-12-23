@@ -1,0 +1,15 @@
+referenceArea_ha
+soilTest_date
+P_mg_per_l
+index_K
+pH_water
+pH_SMP
+index_P_grass
+farmeyeId
+index_P_nongrass
+name
+K_mg_per_l
+referenceArea
+soilTest_id
+auxiliary_storage_labeling_positionx
+auxiliary_storage_labeling_positiony
