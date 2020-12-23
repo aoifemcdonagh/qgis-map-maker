@@ -41,8 +41,20 @@
 
    ![qgis path setup](images/pycharm_qgis_paths.png)
 
+
+## farm_layout.py
+as of **23/12/20**: generates a QGIS project, custom layout, and a layer based on an input json file
+
+Note:
+* use forward slashes '/' to specify paths in arguments
+* the path to the QGIS project must exist. however the project file itself doesn't have to exist
+* path to .json file must exist
+
+
 ## To Do list
 * define flags for attribute columns from json file
+* create path to QGIS project if it doesn't exist already
+* input name of QGIS project instead of full path (project saved to default directory location)
 * add option to include empty column to data table
 * ~~decide what default page size should be~~ :A1
 * dynamically assign sizes to layout items based on page size
