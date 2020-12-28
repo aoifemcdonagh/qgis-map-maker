@@ -25,6 +25,9 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=env_path, override=True)
 
 
+DEFAULT_POLYGON_STYLE = {'color': '0,0,0,0', 'line_color': 'white', 'width_border': '1.0'}
+
+
 def get_args():
     import argparse
     parser = argparse.ArgumentParser()
@@ -82,23 +85,22 @@ def get_layout(name, proj):
     return layout
 
 
-def set_polygon_colour(l):
+def set_polygon_style(l, style=DEFAULT_POLYGON_STYLE):
     """
     function which will render colours of polygons based on user input...
     todo: if no colour coding specified, apply default white polygon boundaries and no fill
     todo: implement various colour coding schemes for different mineral types
         - create another utilities file for rendering layers based on Farmeye-specific use cases
-    :param l:
+    :param l: a layer
+    :param style: dictionary defining polygon style
+            for accepted dict key values see https://qgis.org/api/qgsfillsymbollayer_8cpp_source.html#l00160
     :return:
     """
-    fields = l.getFeatures()
 
     # create renderer to colour polygons in layer
-    symbol = QgsSymbol.defaultSymbol(l.geometryType())
-    renderer = QgsFeatureRenderer(symbol)
-
-    new_layer.setRenderer(renderer)
-
+    symbol = QgsFillSymbol.createSimple(style)
+    l.renderer().setSymbol(symbol)
+    l.triggerRepaint()
 
 def get_fonts():
     """
@@ -137,12 +139,16 @@ if __name__ == "__main__":
 
     # Create a layer
     new_layer = get_layer(args.file, project)
+
     # get layer extents
     ext = new_layer.extent()
     xmin = ext.xMinimum()
     xmax = ext.xMaximum()
     ymin = ext.yMinimum()
     ymax = ext.yMaximum()
+
+    # set layer colours
+    set_polygon_style(new_layer)
 
     # creating a map based on layout
     map = QgsLayoutItemMap(layout)
