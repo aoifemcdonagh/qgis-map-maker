@@ -30,6 +30,7 @@ load_dotenv(dotenv_path=env_path, override=True)
 # dictionary defining polygon style
 # for accepted dict key values see https://qgis.org/api/qgsfillsymbollayer_8cpp_source.html#l00160
 DEFAULT_POLYGON_STYLE = {'color': '0,0,0,0', 'line_color': 'white', 'width_border': '2.0'}
+DEFAULT_PROJECT_DIR = 'projects/'
 
 
 def get_args():
@@ -193,6 +194,34 @@ def set_frame(layout_item):
     layout_item.setFrameStrokeWidth(QgsLayoutMeasurement(5.0, QgsUnitTypes.LayoutMillimeters))
 
 
+def get_project_path(input_string):
+    """
+
+    :param input_string:
+    :return:
+    """
+
+    input_path = Path(input_string)
+    project_path = ''
+
+    # if input_string is a path to .qgs file, return input_string
+    if input_path.suffix == '.qgs':
+        project_path = input_path
+
+    # if input_string is a path to a dir, return path to .qgs file in that dir
+    elif input_path.is_dir():
+        project_path = input_path / 'project.qgs'
+
+    # if input_string is only a name, return path to 'name'.qgs in default project dir
+    elif input_path.suffix == '':
+        project_path = DEFAULT_PROJECT_DIR / input_path.with_suffix('.qgs')
+
+    else:
+        print("invalid project name/file specified. Most likely a non .qgs file specified")
+
+    return project_path
+
+
 def main(args):
     """
     :return:
@@ -205,7 +234,8 @@ def main(args):
     app = QgsApplication([], True)
     app.initQgis()
     project = QgsProject.instance()
-    project.setFileName(args.project_path)  # set project name
+    proj_path = get_project_path(args.project_path)
+    project.setFileName(proj_path)  # set project name
     crs = QgsCoordinateReferenceSystem()
     crs.createFromString("EPSG:32629")
     project.setCrs(crs)
