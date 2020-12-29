@@ -234,7 +234,7 @@ def main(args):
     app = QgsApplication([], True)
     app.initQgis()
     project = QgsProject.instance()
-    proj_path = get_project_path(args.project_path)
+    proj_path = str(get_project_path(args.project_path))
     project.setFileName(proj_path)  # set project name
     crs = QgsCoordinateReferenceSystem()
     crs.createFromString("EPSG:32629")
