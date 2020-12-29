@@ -72,6 +72,9 @@ class DataInput(tk.Frame):
         tk.Frame.__init__(self)
         self.master = master
 
+        # arguments to store
+        self.table_fields = None
+
         self.frm_data = tk.Frame(self, bg="blue")
         self.frm_data.pack(fill=tk.X, expand=True, padx=20, pady=20)
 
@@ -85,6 +88,7 @@ class DataInput(tk.Frame):
         frame_pad = 10
         entry_pad = 5
 
+        #todo use grid instead of multiple frames??
         self.frm_project_name = tk.Frame(master=self.frm_data)
         self.frm_project_name.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
         self.frm_source_file = tk.Frame(master=self.frm_data)
@@ -112,6 +116,32 @@ class DataInput(tk.Frame):
         self.ent_layout_name = tk.Entry(master=self.frm_layout_name)
         self.ent_layout_name.pack(fill=tk.Y, side=tk.RIGHT)
 
+        # table variables
+        self.frm_table_variables = tk.Frame(master=self.frm_data)
+        self.frm_table_variables.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
+
+        self.lbl_table_variables = tk.Label(master=self.frm_table_variables, text="Table variables")
+        self.lbl_table_variables.pack(fill=tk.Y, side=tk.LEFT)
+
+        self.btn_table_variables = tk.Menubutton(master=self.frm_table_variables, text="select", relief=tk.RAISED)
+        self.btn_table_variables.pack(fill=tk.Y, side=tk.RIGHT)
+        self.btn_table_variables.menu = tk.Menu(self.btn_table_variables, tearoff=0)
+        self.btn_table_variables["menu"] = self.btn_table_variables.menu
+        self.table_fields = {}
+
+        for option in get_form_fields('column_names.txt'):
+            var = tk.IntVar()
+            self.btn_table_variables.menu.add_checkbutton(label=option, variable=var)
+            #chk_btn = tk.Checkbutton(self.frm_table_variables, text=option, variable=var)
+            #chk_btn.grid()
+            self.table_fields[option] = var
+
+        # colour code variable
+
+
+        # label variable
+        # todo implement when available in farm_layout.py
+
         # start processing
         self.btn_create = tk.Button(master=self, text="Create QGIS Layout", command=self.run_processing)
         self.btn_create.pack()
@@ -131,11 +161,14 @@ class DataInput(tk.Frame):
 
         qgis_args = QGISArgs(file=self.input_source_file.get(),
                              project_path=project_path,
-                             layout_name=self.ent_layout_name.get())
+                             layout_name=self.ent_layout_name.get(),
+                             table_fields=self.get_table_fields(self.table_fields))
 
         # create thread to run processing script
         th = threading.Thread(target=farm_layout.main, args=(qgis_args,))
         th.start()
+
+        # todo display animation while thread is running
 
         # set project path in MainApplication
         self.master.set_project_path(project_path)
@@ -170,6 +203,15 @@ class DataInput(tk.Frame):
             print("invalid project name/file specified. Most likely a non .qgs file specified")
 
         return project_path
+
+    def get_table_fields(self, d):
+        """
+        return list of selected table fields from checkboxes
+        :param d:
+        :return:
+        """
+        fields = [name for name, value in d.items() if value.get() == 1]
+        return fields
 
 
 class ProcessingScreen(tk.Frame):
@@ -233,14 +275,49 @@ class EndScreen(tk.Frame):
         self.master.restart()
 
 
+class DynamicGrid(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        tk.Frame.__init__(self, parent, *args, **kwargs)
+        self.text = tk.Text(self, wrap="char", borderwidth=0, highlightthickness=0,
+                            state="disabled")
+        self.text.pack(fill="both", expand=True)
+        self.boxes = []
+
+    def add_box(self, check_box):
+        box = tk.Frame(self.text, bd=1, relief="sunken", width=100, height=100)
+        check_box.pack
+        self.boxes.append(box)
+        self.text.configure(state="normal")
+        self.text.window_create("end", window=box)
+        self.text.configure(state="disabled")
+
+
+
 def start_qgis_project(path):
     # run qgis project created
     os.startfile(path)
 
 
+def get_form_fields(file):
+    """
+    todo return a dict with key = column name, value = gui name
+    :param file:
+    :return:
+    """
+
+    names = []
+
+    with open(file, 'r') as data:
+        lines = data.read().splitlines()
+
+        for line in lines:
+            names.append(line)
+
+    return names
+
 if __name__ == "__main__":
     root = tk.Tk()
-    root.maxsize(500, 500)
+    #root.maxsize(500, 500)
 
     heading = tk.Label(root, text="Farmeye QGIS Layout Builder",
                             width=50,
