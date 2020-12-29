@@ -263,6 +263,24 @@ if __name__ == "__main__":
     table.addFrame(frame)
     #table.recalculateFrameSizes()
 
+    # add scalebar
+    scalebar = QgsLayoutItemScaleBar(layout)
+    scalebar.setStyle('Single Box')
+    scalebar.setUnits(QgsUnitTypes.DistanceMeters)
+    scalebar.setNumberOfSegments(4)
+    scalebar.setNumberOfSegmentsLeft(0)
+    # this will depend on the map extent
+    # todo dynamically set units per segment based on map extent?
+    scalebar.setUnitsPerSegment(100)
+    scalebar.setLinkedMap(map)
+    scalebar.setUnitLabel('m')
+    scalebar.setFont(QtGui.QFont('Arial', 36))
+    scalebar.setMaximumBarWidth(250.0)
+    scalebar.setHeight(8)
+    scalebar.update()
+    layout.addLayoutItem(scalebar)
+    scalebar.attemptMove(QgsLayoutPoint(575, 550, QgsUnitTypes.LayoutMillimeters))
+
     # add farmeye logo in bottom right corner
     logo_path = 'images/logo.png'
 
