@@ -5,6 +5,7 @@
 ## Python Dependencies
 1. PyQT5
 1. python-dotenv
+1. Tkinter
 
 ## Software Installation
 1. Install QGIS in OSGeo4W **(64-bit)**  
