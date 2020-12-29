@@ -9,7 +9,9 @@
     ToDo items:
         - create path to QGIS project if it doesn't exist already
         - input name for QGIS project instead of full path (default directory for newly created QGIS projects)
-
+        - create folder with unique name for each run? in folder put qgis project file, copy of file used
+            to create layer that can be edited, optional pdf export
+        - specify folder name, give option to override existing folder
 """
 
 from qgis.core import *
@@ -50,14 +52,12 @@ def get_args():
 def get_layer(arguments, proj):
     # create layer
     layer = QgsVectorLayer(arguments.file, "fields", "ogr")
-    #crs = layer.crs()
-    #crs.createFromId(4326)  # WGS84 - EPSG4326 , IRENET95 - EPSG2158
-    #layer.setCrs(proj.crs())
 
     # round to two decimal places all feature attribures that will go into table
+    # todo round without editing the source file for layer!
+    # possibly create a new temp file? or file in same project dir??
     with edit(layer):
         for feature in layer.getFeatures():
-
             for name in arguments.table_fields:
                 if isinstance(feature[name], float):  # if a float value round to two decimal places
                     feature.setAttribute(feature.fieldNameIndex(name), round(feature[name], 2))
@@ -76,7 +76,7 @@ def get_layout(name, proj):
 
     # create a new layout
     # todo customise this layout to match Farmeye template?
-    layout = QgsPrintLayout(project)
+    layout = QgsPrintLayout(proj)
     layoutName = name
 
     # remove duplicate layouts
@@ -98,7 +98,7 @@ def get_layout(name, proj):
     return layout
 
 
-def get_rectangle(l):
+def get_rectangle(l, proj):
     # get layer extents
     ext = l.extent()  # QgsRectangle object
     xmin = ext.xMinimum()  # floats
@@ -113,18 +113,19 @@ def get_rectangle(l):
 
     src_crs = QgsCoordinateReferenceSystem(4326)
     dest_crs = QgsCoordinateReferenceSystem(32629)
-    xform = QgsCoordinateTransform(src_crs, dest_crs, project)
+    xform = QgsCoordinateTransform(src_crs, dest_crs, proj)
     rect = xform.transform(rect)
 
     return rect
 
+"""
 def round_data(l, dec_places):
-    """
+    
     round data to a given number of decimal places if it's a double
     :param l:
     :param dec_places:
     :return:
-    """
+    
 
     # set expression to round table items to 2 decimal places
     expressions = []
@@ -132,6 +133,8 @@ def round_data(l, dec_places):
         # create an expression for each field specified in arguments
         exp = QgsExpression('round(' + name + ', 2)')
         expressions.append(exp)
+        
+    """
 
 
 def set_polygon_style(l, code=None):
@@ -190,8 +193,10 @@ def set_frame(layout_item):
     layout_item.setFrameStrokeWidth(QgsLayoutMeasurement(5.0, QgsUnitTypes.LayoutMillimeters))
 
 
-if __name__ == "__main__":
-    args = get_args()
+def main(args):
+    """
+    :return:
+    """
 
     # todo: handle creation of qgis project from name instead of full path
 
@@ -208,7 +213,7 @@ if __name__ == "__main__":
     # add tile layer
     tile_layer_url = 'type=xyz&url=https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
     tile_layer = QgsRasterLayer(tile_layer_url, 'ESRI', 'wms')
-    #tile_layer.setCrs(crs)
+    # tile_layer.setCrs(crs)
 
     if tile_layer.isValid():
         project.addMapLayer(tile_layer)
@@ -236,7 +241,7 @@ if __name__ == "__main__":
     map = QgsLayoutItemMap(layout)
     # I have no idea what this does, but it is necessary
     map.setRect(20, 20, 20, 20)
-    map.setExtent(get_rectangle(new_layer))  # Set Map Extent
+    map.setExtent(get_rectangle(new_layer, project))  # Set Map Extent
     set_frame(map)  # set frame attributes around map
     layout.addLayoutItem(map)
     map.attemptResize(page_size)  # resize map to layout size
@@ -256,12 +261,12 @@ if __name__ == "__main__":
     frame = QgsLayoutFrame(layout, table)
     set_frame(frame)  # set frame attributes around table. don't confuse with Frame objects, maybe should rename..
     # todo dynamically resize frame to match table size?
-    #s = QgsLayoutSize()
-    #s.setHeight(table.totalHeight())
-    #s.setWidth(table.totalWidth())
+    # s = QgsLayoutSize()
+    # s.setHeight(table.totalHeight())
+    # s.setWidth(table.totalWidth())
     frame.attemptResize(page_size, True)
     table.addFrame(frame)
-    #table.recalculateFrameSizes()
+    # table.recalculateFrameSizes()
 
     # add scalebar
     scalebar = QgsLayoutItemScaleBar(layout)
@@ -301,3 +306,11 @@ if __name__ == "__main__":
 
     # save the project
     project.write()
+
+
+if __name__ == "__main__":
+    arguments = get_args()
+
+    main(arguments)
+
+
