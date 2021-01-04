@@ -298,7 +298,6 @@ def main(args):
     # Create a table attached to specific layout
     table = QgsLayoutItemAttributeTable.create(layout)
     table.setVectorLayer(new_layer)  # add layer info to table
-    #args.table_fields.append("")
     table.setDisplayedFields(args.table_fields)
     # Create table font
     content_font, header_font = get_fonts()

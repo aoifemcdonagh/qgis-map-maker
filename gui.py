@@ -42,7 +42,7 @@ class MainApplication(tk.Frame):
         self.btn_start.pack()
 
     def set_project_path(self, path):
-        self.project_path = path
+        self.project_path.set(path)
 
     def set_qgis_args(self, a):
         self.qgis_args = a
@@ -74,6 +74,8 @@ class MainApplication(tk.Frame):
     #    start_qgis(self.project_path.get())
 
     def restart(self):
+        self.project_path.set("")
+        self.qgis_args = None
         self.end_screen.pack_forget()
         self.data_input = DataInput(self)  # clear DataInput
         self.data_input.pack()
@@ -150,13 +152,13 @@ class DataInput(tk.Frame):
         self.btn_table_variables["menu"] = self.btn_table_variables.menu
         #self.btn_table_variables.menu.add_command(command=self.update_table_variables)
 
-        self.table_fields = {}
+        self.table_field_vars = {}
         for option in get_form_fields('column_names.txt'):
             table_var = tk.IntVar()
             self.btn_table_variables.menu.add_checkbutton(label=option, variable=table_var)
             #chk_btn = tk.Checkbutton(self.frm_table_variables, text=option, variable=var)
             #chk_btn.grid()
-            self.table_fields[option] = table_var
+            self.table_field_vars[option] = table_var
 
         #
         # colour code variable
@@ -226,6 +228,9 @@ class DataInput(tk.Frame):
         # create full project path
         project_path = self.get_project_path(self.ent_project_name.get())
 
+        table_fields = self.get_fields(self.table_field_vars)
+        fields = ["name", "referenceArea_ha"] if len(table_fields) == 0 else table_fields
+
         color_code = self.color_var.get()
         color_code = None if color_code is "" else color_code
 
@@ -235,24 +240,16 @@ class DataInput(tk.Frame):
         qgis_args = QGISArgs(file=self.input_source_file.get(),
                              project_path=project_path,
                              layout_name=self.ent_layout_name.get(),
-                             table_fields=self.get_fields(self.table_fields),
+                             table_fields=fields,
                              color_code=color_code,
                              label_data=label_var)
 
         self.master.set_qgis_args(qgis_args)
 
-        # create thread to run processing script
-        #th = threading.Thread(target=farm_layout.main, args=(qgis_args,))
-        #th.start()
-
-        # todo display animation while thread is running
-
         # set project path in MainApplication
         self.master.set_project_path(project_path)
 
         self.master.start_processing_screen()
-
-        #th.join()
 
     def get_project_path(self, input_string):
         """
@@ -350,7 +347,7 @@ class EndScreen(tk.Frame):
         # either button triggers self.destroy() and sets corresponding flag
         self.btn_open_qgis = tk.Button(self,
                                        text="Open QGIS project",
-                                       command=lambda: start_qgis_project(str(self.master.project_path)))
+                                       command=lambda: start_qgis_project(self.master.project_path.get()))
         self.btn_open_qgis.pack(side=tk.LEFT)
 
         self.btn_start_over = tk.Button(self, text="Create another project", command=self.restart)
@@ -405,6 +402,8 @@ def get_form_fields(file):
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.title("Layout Builder")
+
     #root.maxsize(500, 500)
 
     heading = tk.Label(root, text="Farmeye QGIS Layout Builder",
