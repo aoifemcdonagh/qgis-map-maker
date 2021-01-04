@@ -42,10 +42,12 @@ def get_args():
                         help="Path to project file. Can be an existing project.")
     parser.add_argument("-l", "--layout_name", type=str, default="field layout",
                         help="optional name for layer. useful if creating a new layer in an existing project")
-    parser.add_argument("--table_fields", nargs="+", default=["name","referenceArea_ha"],
+    parser.add_argument("-t", "--table_fields", nargs="+", default=["name","referenceArea_ha"],
                         help="fields to display in table")  # nargs="+" returns a list object
-    parser.add_argument("-c", "--colour_code", type=str, default=None,
+    parser.add_argument("-c", "--color_code", type=str, default=None,
                         help="variable to colour code map")
+    parser.add_argument("--label_data", type=str,
+                        help="data column to create labels out of")
     parser.add_argument("--pdf", type=str, help="path to .pdf file to export layout to")
     return parser.parse_args()
 
@@ -149,7 +151,7 @@ def set_polygon_style(l, code=None):
     :return:
     """
 
-    if code is None:  # if no colour code set, use default style
+    if code is None or "":  # if no colour code set, use default style
         style = DEFAULT_POLYGON_STYLE
         symbol = QgsFillSymbol.createSimple(style)
         # create renderer to colour polygons in layer
@@ -165,6 +167,22 @@ def set_polygon_style(l, code=None):
         # todo allow argument for number of classes (set to 10 here)
         renderer.updateClasses(l, QgsGraduatedSymbolRenderer.EqualInterval, 10)
         l.setRenderer(renderer)
+
+
+def set_layer_labels(l, label_data):
+    label_settings = QgsPalLayerSettings()
+    label_settings.drawLabels = True
+    label_settings.fieldName = label_data
+
+    # set up label text format
+    text_format = QgsTextFormat()
+    text_format.setFont(QtGui.QFont("Arial", 10))
+    text_format.setSize(50)
+    text_format.setSizeUnit(QgsUnitTypes.RenderMapUnits)
+    label_settings.setFormat(text_format)
+    l.setLabeling(QgsVectorLayerSimpleLabeling(label_settings))
+    l.setLabelsEnabled(True)
+    #l.triggerRepaint()
 
 
 def get_fonts():
@@ -261,11 +279,12 @@ def main(args):
     # Create a layer
     new_layer = get_layer(args, project)
 
-    # save the project
-    project.write()
-
     # set layer colours
-    set_polygon_style(new_layer, args.colour_code)
+    set_polygon_style(new_layer, args.color_code)
+
+    # set layer labels
+    if args.label_data is not None or "":
+        set_layer_labels(new_layer, args.label_data)
 
     # creating a map based on layout
     map = QgsLayoutItemMap(layout)
@@ -279,6 +298,7 @@ def main(args):
     # Create a table attached to specific layout
     table = QgsLayoutItemAttributeTable.create(layout)
     table.setVectorLayer(new_layer)  # add layer info to table
+    #args.table_fields.append("")
     table.setDisplayedFields(args.table_fields)
     # Create table font
     content_font, header_font = get_fonts()
