@@ -18,7 +18,8 @@ class QGISArgs:
         self.project_path = ""
         self.layout_name = ""
         self.table_fields = []
-        self.colour_code = None
+        self.color_code = None
+        self.label_data = None
         self.pdf = None
         self.__dict__.update(kwargs)
 
@@ -31,6 +32,7 @@ class MainApplication(tk.Frame):
         self.master = master
         self.project_path = tk.StringVar()
         self.project_path.set("")
+        self.qgis_args = None
 
         self.data_input = None
         self.processing_screen = None
@@ -42,6 +44,9 @@ class MainApplication(tk.Frame):
     def set_project_path(self, path):
         self.project_path = path
 
+    def set_qgis_args(self, a):
+        self.qgis_args = a
+
     def start(self):
         self.data_input = DataInput(self)
         self.data_input.pack()
@@ -52,6 +57,13 @@ class MainApplication(tk.Frame):
         self.processing_screen = ProcessingScreen(self)
         self.processing_screen.pack()
         self.update()
+
+        # create thread to run processing script
+        th = threading.Thread(target=farm_layout.main, args=(self.qgis_args,))
+        th.start()
+
+        th.join()
+        self.start_end_screen()
 
     def start_end_screen(self):
         self.processing_screen.pack_forget()
@@ -103,7 +115,8 @@ class DataInput(tk.Frame):
         self.ent_project_name.pack(fill=tk.Y, side=tk.RIGHT)
 
         # source file
-        self.lbl_source_file = tk.Label(text="Source file", master=self.frm_source_file, textvariable=self.input_source_file)
+        self.lbl_source_file = tk.Label(text="Source file", master=self.frm_source_file,
+                                        textvariable=self.input_source_file)
         self.lbl_source_file.pack(fill=tk.Y, side=tk.LEFT)
         self.btn_source_file = tk.Button(master=self.frm_source_file, text="browse", command=self.browse_button)
         self.btn_source_file.pack(side=tk.RIGHT)
@@ -116,7 +129,9 @@ class DataInput(tk.Frame):
         self.ent_layout_name = tk.Entry(master=self.frm_layout_name)
         self.ent_layout_name.pack(fill=tk.Y, side=tk.RIGHT)
 
+        #
         # table variables
+        #
         self.frm_table_variables = tk.Frame(master=self.frm_data)
         self.frm_table_variables.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
 
@@ -125,22 +140,74 @@ class DataInput(tk.Frame):
 
         self.btn_table_variables = tk.Menubutton(master=self.frm_table_variables, text="select", relief=tk.RAISED)
         self.btn_table_variables.pack(fill=tk.Y, side=tk.RIGHT)
+
+        self.table_variables_selected = tk.StringVar()
+        self.lbl_table_variables_selected = tk.Label(master=self.frm_table_variables,
+                                                     textvariable=self.table_variables_selected)
+        self.lbl_table_variables_selected.pack(fill=tk.Y, side=tk.RIGHT)
+
         self.btn_table_variables.menu = tk.Menu(self.btn_table_variables, tearoff=0)
         self.btn_table_variables["menu"] = self.btn_table_variables.menu
-        self.table_fields = {}
+        #self.btn_table_variables.menu.add_command(command=self.update_table_variables)
 
+        self.table_fields = {}
         for option in get_form_fields('column_names.txt'):
-            var = tk.IntVar()
-            self.btn_table_variables.menu.add_checkbutton(label=option, variable=var)
+            table_var = tk.IntVar()
+            self.btn_table_variables.menu.add_checkbutton(label=option, variable=table_var)
             #chk_btn = tk.Checkbutton(self.frm_table_variables, text=option, variable=var)
             #chk_btn.grid()
-            self.table_fields[option] = var
+            self.table_fields[option] = table_var
 
+        #
         # colour code variable
+        #
+        self.frm_color_variables = tk.Frame(master=self.frm_data)
+        self.frm_color_variables.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
 
+        self.lbl_color_variables = tk.Label(master=self.frm_color_variables, text="Color Code variable")
+        self.lbl_color_variables.pack(fill=tk.Y, side=tk.LEFT)
 
+        self.btn_color_variables = tk.Menubutton(master=self.frm_color_variables, text="select", relief=tk.RAISED)
+        self.btn_color_variables.pack(fill=tk.Y, side=tk.RIGHT)
+
+        self.color_var = tk.StringVar()
+        self.lbl_color_variable_selected = tk.Label(master=self.frm_color_variables, textvariable=self.color_var)
+        self.lbl_color_variable_selected.pack(fill=tk.Y, side=tk.RIGHT)
+
+        self.btn_color_variables.menu = tk.Menu(self.btn_color_variables, tearoff=0)
+        self.btn_color_variables["menu"] = self.btn_color_variables.menu
+        #self.color_fields = {}
+
+        for option in get_form_fields('column_names.txt'):
+            self.btn_color_variables.menu.add_radiobutton(label=option, variable=self.color_var, value=option)
+            # chk_btn = tk.Checkbutton(self.frm_table_variables, text=option, variable=var)
+            # chk_btn.grid()
+            #self.color_fields[option] = self.color_var
+
+        #
         # label variable
-        # todo implement when available in farm_layout.py
+        #
+        self.frm_label_variables = tk.Frame(master=self.frm_data)
+        self.frm_label_variables.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
+
+        self.lbl_label_variables = tk.Label(master=self.frm_label_variables, text="Label variable")
+        self.lbl_label_variables.pack(fill=tk.Y, side=tk.LEFT)
+
+        self.btn_label_variables = tk.Menubutton(master=self.frm_label_variables, text="select", relief=tk.RAISED)
+        self.btn_label_variables.pack(fill=tk.Y, side=tk.RIGHT)
+
+        self.label_var = tk.StringVar()
+        self.lbl_label_variable_selected = tk.Label(master=self.frm_label_variables, textvariable=self.label_var)
+        self.lbl_label_variable_selected.pack(fill=tk.Y, side=tk.RIGHT)
+
+        self.btn_label_variables.menu = tk.Menu(self.btn_label_variables, tearoff=0)
+        self.btn_label_variables["menu"] = self.btn_label_variables.menu
+
+        for option in get_form_fields('column_names.txt'):
+            self.btn_label_variables.menu.add_radiobutton(label=option, variable=self.label_var, value=option)
+            # chk_btn = tk.Checkbutton(self.frm_table_variables, text=option, variable=var)
+            # chk_btn.grid()
+            # self.color_fields[option] = self.color_var
 
         # start processing
         self.btn_create = tk.Button(master=self, text="Create QGIS Layout", command=self.run_processing)
@@ -159,14 +226,24 @@ class DataInput(tk.Frame):
         # create full project path
         project_path = self.get_project_path(self.ent_project_name.get())
 
+        color_code = self.color_var.get()
+        color_code = None if color_code is "" else color_code
+
+        label_var = self.label_var.get()
+        label_var = None if label_var is "" else label_var
+
         qgis_args = QGISArgs(file=self.input_source_file.get(),
                              project_path=project_path,
                              layout_name=self.ent_layout_name.get(),
-                             table_fields=self.get_table_fields(self.table_fields))
+                             table_fields=self.get_fields(self.table_fields),
+                             color_code=color_code,
+                             label_data=label_var)
+
+        self.master.set_qgis_args(qgis_args)
 
         # create thread to run processing script
-        th = threading.Thread(target=farm_layout.main, args=(qgis_args,))
-        th.start()
+        #th = threading.Thread(target=farm_layout.main, args=(qgis_args,))
+        #th.start()
 
         # todo display animation while thread is running
 
@@ -175,7 +252,7 @@ class DataInput(tk.Frame):
 
         self.master.start_processing_screen()
 
-        th.join()
+        #th.join()
 
     def get_project_path(self, input_string):
         """
@@ -204,7 +281,7 @@ class DataInput(tk.Frame):
 
         return project_path
 
-    def get_table_fields(self, d):
+    def get_fields(self, d):
         """
         return list of selected table fields from checkboxes
         :param d:
@@ -212,6 +289,17 @@ class DataInput(tk.Frame):
         """
         fields = [name for name, value in d.items() if value.get() == 1]
         return fields
+
+    def update_table_variables(self):
+        """
+        Updates string that holds table variables
+        :return:
+        """
+        str_fields = ","
+        fields_selected = self.get_fields(self.table_fields)
+        str_fields.join(fields_selected)
+
+        self.table_variables_selected.set(str_fields)
 
 
 class ProcessingScreen(tk.Frame):
@@ -228,8 +316,8 @@ class ProcessingScreen(tk.Frame):
                              height=5)
         self.text.pack()
 
-        self.btn_next = tk.Button(self, text="next", command=self.start_end_screen)
-        self.master.after(2000, self.btn_next.pack())
+        #self.btn_next = tk.Button(self, text="next", command=self.start_end_screen)
+        #self.master.after(2000, self.btn_next.pack())
 
         """
         num = 3
