@@ -16,8 +16,8 @@
 
 from qgis.core import *
 from qgis.PyQt import QtGui
-import PyQt5 as qt
 import os
+import logging
 
 # Identify environment variable file
 from pathlib import Path
@@ -67,7 +67,7 @@ def get_layer(arguments, proj):
                     layer.updateFeature(feature)
 
     if not layer.isValid():
-        print("Layer failed to load!")
+        logging.info("Layer failed to load!")
     else:
         proj.addMapLayer(layer)
 
@@ -235,7 +235,7 @@ def get_project_path(input_string):
         project_path = DEFAULT_PROJECT_DIR / input_path.with_suffix('.qgs')
 
     else:
-        print("invalid project name/file specified. Most likely a non .qgs file specified")
+        logging.info("invalid project name/file specified. Most likely a non .qgs file specified")
 
     return project_path
 
@@ -247,10 +247,27 @@ def main(args):
 
     # todo: handle creation of qgis project from name instead of full path
 
+
     # Initialize QGIS Application
     QgsApplication.setPrefixPath(os.getenv("QGIS"), True)
-    app = QgsApplication([], True)
-    app.initQgis()
+    app = QgsApplication([], False, None)
+    QgsApplication.initQgis()
+
+    # need to remove old layers and layouts from QgsProject.instance() because using
+    # QgsApplication.exitQgis() doesn't work when called from GUI
+
+    # remove old layers
+    registryLayers = QgsProject.instance().mapLayers().keys()
+    layersToRemove = set(registryLayers)
+    QgsProject.instance().removeMapLayers(list(layersToRemove))
+
+    # remove old layouts
+    layout_manager = QgsProject.instance().layoutManager()
+    layouts_list = layout_manager.printLayouts()
+    for l in layouts_list:
+        layout_manager.removeLayout(l)
+
+    # project is 'cleared' now
     project = QgsProject.instance()
     proj_path = str(get_project_path(args.project_path))
     project.setFileName(proj_path)  # set project name
@@ -266,7 +283,7 @@ def main(args):
     if tile_layer.isValid():
         project.addMapLayer(tile_layer)
     else:
-        print('invalid layer')
+        logging.info('invalid layer')
 
     # Create layout
     layout = get_layout(args.layout_name, project)

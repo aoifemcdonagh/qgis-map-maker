@@ -38,8 +38,14 @@ class MainApplication(tk.Frame):
         self.processing_screen = None
         self.end_screen = None
 
-        self.btn_start = tk.Button(self, text="Start", command=self.start)
-        self.btn_start.pack()
+        #self.btn_start = tk.Button(self, text="Start", command=self.start)
+        #self.btn_start.pack()
+
+        self.error_message = tk.StringVar()
+        self.error = tk.BooleanVar()
+        self.error.set(False)
+
+        self.start()
 
     def set_project_path(self, path):
         self.project_path.set(path)
@@ -48,27 +54,35 @@ class MainApplication(tk.Frame):
         self.qgis_args = a
 
     def start(self):
+        #self.btn_start.pack_forget()
         self.data_input = DataInput(self)
-        self.data_input.pack()
-        self.btn_start.pack_forget()
+        self.data_input.pack(padx=20, pady=20)
+        self.update()
 
     def start_processing_screen(self):
         self.data_input.pack_forget()
         self.processing_screen = ProcessingScreen(self)
-        self.processing_screen.pack()
+        self.processing_screen.pack(padx=20, pady=20)
         self.update()
-
         # create thread to run processing script
-        th = threading.Thread(target=farm_layout.main, args=(self.qgis_args,))
-        th.start()
-
-        th.join()
+        #th = threading.Thread(target=farm_layout.main, args=(self.qgis_args,))
+        #th.daemon = True
+        #th.start()
+        #th.join()
+        # todo catch errors from running qgis e.g. required args not specified
+        # notify and give option to 'restart' another project
+        try:
+            farm_layout.main(self.qgis_args)
+        except AssertionError:
+            self.error_message.set("ERROR: Required information not given. \n (project name or source file) \n\nQGIS project not created")
+            self.error.set(True)
         self.start_end_screen()
 
     def start_end_screen(self):
         self.processing_screen.pack_forget()
         self.end_screen = EndScreen(self)
-        self.end_screen.pack()
+        self.end_screen.pack(padx=20, pady=20)
+        self.update()
 
     #def start_qgis(self):
     #    start_qgis(self.project_path.get())
@@ -76,9 +90,11 @@ class MainApplication(tk.Frame):
     def restart(self):
         self.project_path.set("")
         self.qgis_args = None
+        self.error.set(False)
         self.end_screen.pack_forget()
         self.data_input = DataInput(self)  # clear DataInput
-        self.data_input.pack()
+        self.data_input.pack(padx=20, pady=20)
+        self.update()
 
 
 class DataInput(tk.Frame):
@@ -259,24 +275,24 @@ class DataInput(tk.Frame):
         """
 
         input_path = Path(input_string)
-        project_path = ''
+        p = ''
 
         # if input_string is a path to .qgs file, return input_string
         if input_path.suffix == '.qgs':
-            project_path = input_path
+            p = input_path
 
         # if input_string is a path to a dir, return path to .qgs file in that dir
         elif input_path.is_dir():
-            project_path = input_path / 'project.qgs'
+            p = input_path / 'project.qgs'
 
         # if input_string is only a name, return path to 'name'.qgs in default project dir
         elif input_path.suffix == '':
-            project_path = DEFAULT_PROJECT_DIR / input_path.with_suffix('.qgs')
+            p = DEFAULT_PROJECT_DIR / input_path.with_suffix('.qgs')
 
         else:
             print("invalid project name/file specified. Most likely a non .qgs file specified")
 
-        return project_path
+        return str(p)
 
     def get_fields(self, d):
         """
@@ -304,32 +320,8 @@ class ProcessingScreen(tk.Frame):
         tk.Frame.__init__(self)
         self.master = master
 
-        self.text_string = tk.StringVar()
-        self.text_string.set("Processing...")
-
-        self.text = tk.Label(self,
-                             textvariable=self.text_string,
-                             width=50,
-                             height=5)
+        self.text = tk.Label(self, text="Processing...", width=50, height=5)
         self.text.pack()
-
-        #self.btn_next = tk.Button(self, text="next", command=self.start_end_screen)
-        #self.master.after(2000, self.btn_next.pack())
-
-        """
-        num = 3
-        for i in range(num):
-            self.master.after(1000, command=lambda: self.update_process_icon(i))
-
-            if i == num - 1:
-                # on last number go to next screen may not work
-                self.btn_next.pack()"""
-
-    def update_process_icon(self, value):
-        self.text_string.set("Processing" + str(value))
-
-    def start_end_screen(self):
-        self.master.start_end_screen()
 
 
 class EndScreen(tk.Frame):
@@ -337,21 +329,25 @@ class EndScreen(tk.Frame):
         tk.Frame.__init__(self)
         self.master = master
 
-        self.text = tk.Label(self, text="Finished",
-                            width=50,
-                            height=5)
-        self.text.pack()
+        self.lbl_finished = tk.Label(self, text="Finished")
+        self.lbl_error_message = tk.Label(self, textvariable=self.master.error_message, fg='red')
 
-        # todo create commands for both buttons
-        # possibly set a flag which is handled by MainApplication?
-        # either button triggers self.destroy() and sets corresponding flag
         self.btn_open_qgis = tk.Button(self,
                                        text="Open QGIS project",
                                        command=lambda: start_qgis_project(self.master.project_path.get()))
-        self.btn_open_qgis.pack(side=tk.LEFT)
 
-        self.btn_start_over = tk.Button(self, text="Create another project", command=self.restart)
-        self.btn_start_over.pack(side=tk.RIGHT)
+        self.btn_start_over = tk.Button(self, text="Create another project", command=self.master.restart)
+
+        if self.master.error.get():  # if error
+            self.lbl_error_message.pack(padx=20, pady=20)
+            self.btn_start_over.pack()
+        else:  # else print finished
+            self.lbl_finished.pack(padx=20, pady=20)
+            self.btn_open_qgis.pack(side=tk.LEFT, padx=20)
+            self.btn_start_over.pack(side=tk.RIGHT, padx=20)
+
+
+
 
     def start_qgis(self):
         self.master.start_qgis()
@@ -359,7 +355,7 @@ class EndScreen(tk.Frame):
     def restart(self):
         self.master.restart()
 
-
+"""
 class DynamicGrid(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
@@ -375,7 +371,7 @@ class DynamicGrid(tk.Frame):
         self.text.configure(state="normal")
         self.text.window_create("end", window=box)
         self.text.configure(state="disabled")
-
+"""
 
 
 def start_qgis_project(path):
@@ -406,10 +402,8 @@ if __name__ == "__main__":
 
     #root.maxsize(500, 500)
 
-    heading = tk.Label(root, text="Farmeye QGIS Layout Builder",
-                            width=50,
-                            height=5)
-    heading.pack()
+    #heading = tk.Label(root, text="Farmeye QGIS Layout Builder", width=50, height=5)
+    #heading.pack()
 
     MainApplication(root).pack(side="top", fill="both", expand=True)
 
