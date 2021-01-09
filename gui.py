@@ -9,6 +9,7 @@ import os
 import farm_layout
 
 DEFAULT_PROJECT_DIR = 'projects/'
+Path(DEFAULT_PROJECT_DIR).mkdir(parents=True, exist_ok=True)
 
 # namespace to hold arguments to pass to farm_layout.py
 class QGISArgs:
