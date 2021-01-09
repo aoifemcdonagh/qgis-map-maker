@@ -46,6 +46,8 @@ def get_args():
                         help="name of farm to include in layout")
     parser.add_argument("-l", "--layout_name", type=str, default="field layout",
                         help="optional name for layer. useful if creating a new layer in an existing project")
+    parser.add_argument("--map_count", type=int,
+                        help="option to create multiple maps within the same layout")
     parser.add_argument("-t", "--table_fields", nargs="+", default=["name","referenceArea_ha"],
                         help="fields to display in table")  # nargs="+" returns a list object
     parser.add_argument("-c", "--color_code", type=str, default=None,
@@ -338,7 +340,7 @@ def main(args):
     if args.label_data is not None or "":
         set_layer_labels(new_layer, args.label_data)
 
-    # creating a map based on layout
+    # Create and add the full sized map
     map = QgsLayoutItemMap(layout)
     # I have no idea what this does, but it is necessary
     map.setRect(20, 20, 20, 20)
@@ -346,6 +348,23 @@ def main(args):
     set_frame(map)  # set frame attributes around map
     layout.addLayoutItem(map)
     map.attemptResize(page_size)  # resize map to layout size
+
+    if args.map_count > 1:  # add the rest of the maps in smaller size
+        for c in range(args.map_count-1):  # -1 since one map already created
+            # creating a map based on layout
+            map = QgsLayoutItemMap(layout)
+            # I have no idea what this does, but it is necessary
+            map.setRect(20, 20, 20, 20)
+            map.setExtent(get_rectangle(new_layer, project))  # Set Map Extent
+            map.setReferencePoint(QgsLayoutItem.LowerRight)
+            set_frame(map)  # set frame attributes around map
+            layout.addLayoutItem(map)
+            map.attemptResize(QgsLayoutSize(page_size.width()/2,
+                                            page_size.width()/2,
+                                            QgsUnitTypes.LayoutMillimeters))
+            map.attemptMove(QgsLayoutPoint(page_size.width()-(50*c),
+                                           page_size.height()-(50*c),
+                                           QgsUnitTypes.LayoutMillimeters))
 
     # Create a table attached to specific layout
     table = QgsLayoutItemAttributeTable.create(layout)

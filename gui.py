@@ -20,6 +20,7 @@ class QGISArgs:
         self.project_path = ""
         self.farm_name = ""
         self.layout_name = ""
+        self.map_count = None
         self.table_fields = []
         self.color_code = None
         self.label_data = None
@@ -122,14 +123,16 @@ class DataInput(tk.Frame):
         entry_pad = 5
 
         #todo use grid instead of multiple frames??
-        self.frm_project_name = tk.Frame(master=self.frm_data)
+        self.frm_project_name = tk.Frame(master=self.frm_data, highlightbackground="red", highlightthickness=2)
         self.frm_project_name.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
+        self.frm_source_file = tk.Frame(master=self.frm_data, highlightbackground="red", highlightthickness=2)
+        self.frm_source_file.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
         self.frm_farm_name = tk.Frame(master=self.frm_data)
         self.frm_farm_name.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
-        self.frm_source_file = tk.Frame(master=self.frm_data)
-        self.frm_source_file.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
         self.frm_layout_name = tk.Frame(master=self.frm_data)
         self.frm_layout_name.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
+        self.frm_map_count = tk.Frame(master=self.frm_data)
+        self.frm_map_count.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
 
         # project name
         self.lbl_project_name = tk.Label(text="Project name, path or folder", master=self.frm_project_name)
@@ -157,6 +160,12 @@ class DataInput(tk.Frame):
         self.lbl_layout_name.pack(fill=tk.Y, side=tk.LEFT)
         self.ent_layout_name = tk.Entry(master=self.frm_layout_name)
         self.ent_layout_name.pack(fill=tk.Y, side=tk.RIGHT)
+
+        # map count
+        self.lbl_map_count = tk.Label(text="Map count", master=self.frm_map_count)
+        self.lbl_map_count.pack(fill=tk.Y, side=tk.LEFT)
+        self.ent_map_count = tk.Entry(master=self.frm_map_count)
+        self.ent_map_count.pack(fill=tk.Y, side=tk.RIGHT)
 
         #
         # table variables
@@ -255,6 +264,8 @@ class DataInput(tk.Frame):
         # create full project path
         project_path = self.get_project_path(self.ent_project_name.get())
 
+        map_count = 1 if self.ent_map_count is "" else int(self.ent_map_count.get())
+
         table_fields = self.get_fields(self.table_field_vars)
         fields = ["name", "referenceArea_ha"] if len(table_fields) == 0 else table_fields
 
@@ -268,6 +279,7 @@ class DataInput(tk.Frame):
                              project_path=project_path,
                              farm_name=self.ent_farm_name.get(),
                              layout_name=self.ent_layout_name.get(),
+                             map_count=map_count,
                              table_fields=fields,
                              color_code=color_code,
                              label_data=label_var)
