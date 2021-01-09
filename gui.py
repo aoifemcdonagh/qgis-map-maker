@@ -11,12 +11,14 @@ import farm_layout
 DEFAULT_PROJECT_DIR = 'projects/'
 Path(DEFAULT_PROJECT_DIR).mkdir(parents=True, exist_ok=True)
 
+
 # namespace to hold arguments to pass to farm_layout.py
 class QGISArgs:
     def __init__(self, **kwargs):
         # attributes match attributes of argparse namespace in farm_layout.py
         self.file = ""
         self.project_path = ""
+        self.farm_name = ""
         self.layout_name = ""
         self.table_fields = []
         self.color_code = None
@@ -122,6 +124,8 @@ class DataInput(tk.Frame):
         #todo use grid instead of multiple frames??
         self.frm_project_name = tk.Frame(master=self.frm_data)
         self.frm_project_name.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
+        self.frm_farm_name = tk.Frame(master=self.frm_data)
+        self.frm_farm_name.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
         self.frm_source_file = tk.Frame(master=self.frm_data)
         self.frm_source_file.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
         self.frm_layout_name = tk.Frame(master=self.frm_data)
@@ -132,6 +136,12 @@ class DataInput(tk.Frame):
         self.lbl_project_name.pack(fill=tk.Y, side=tk.LEFT)
         self.ent_project_name = tk.Entry(master=self.frm_project_name)
         self.ent_project_name.pack(fill=tk.Y, side=tk.RIGHT)
+
+        # farm name
+        self.lbl_farm_name = tk.Label(text="Farm name", master=self.frm_farm_name)
+        self.lbl_farm_name.pack(fill=tk.Y, side=tk.LEFT)
+        self.ent_farm_name = tk.Entry(master=self.frm_farm_name)
+        self.ent_farm_name.pack(fill=tk.Y, side=tk.RIGHT)
 
         # source file
         self.lbl_source_file = tk.Label(text="Source file", master=self.frm_source_file,
@@ -256,6 +266,7 @@ class DataInput(tk.Frame):
 
         qgis_args = QGISArgs(file=self.input_source_file.get(),
                              project_path=project_path,
+                             farm_name=self.ent_farm_name.get(),
                              layout_name=self.ent_layout_name.get(),
                              table_fields=fields,
                              color_code=color_code,
