@@ -30,7 +30,7 @@ load_dotenv(dotenv_path=env_path, override=True)
 # dictionary defining polygon style
 # for accepted dict key values see https://qgis.org/api/qgsfillsymbollayer_8cpp_source.html#l00160
 DEFAULT_POLYGON_STYLE = {'color': '0,0,0,0', 'line_color': 'white', 'width_border': '2.0'}
-DEFAULT_INDEX_COLORS = ['#0011FF', '#0061FF', '#00D4FF', '#00FF66', '#00FF00', '#E5FF32', '#FCFC0C', '#FF9F00', '#FF3F00', '#FF0000']
+DEFAULT_INDEX_COLORS = ['#0011FF', '#00FF00', '#FCFC0C', '#FF0000']
 DEFAULT_PROJECT_DIR = 'projects/'
 Path(DEFAULT_PROJECT_DIR).mkdir(parents=True, exist_ok=True)
 
@@ -42,6 +42,8 @@ def get_args():
                         help="path to file containing field polygons (.json)")
     parser.add_argument("-p", "--project_path", required=True, type=str,
                         help="Path to project file. Can be an existing project.")
+    parser.add_argument("--farm_name", type=str,
+                        help="name of farm to include in layout")
     parser.add_argument("-l", "--layout_name", type=str, default="field layout",
                         help="optional name for layer. useful if creating a new layer in an existing project")
     parser.add_argument("-t", "--table_fields", nargs="+", default=["name","referenceArea_ha"],
@@ -164,7 +166,8 @@ def set_polygon_style(l, code=None):
         for f in l.getFeatures():
             vals.append(f[code])
 
-        lower = sorted(vals)[0]
+        #lower = sorted(vals)[0]
+        lower = 0
         upper = sorted(vals)[-1]
         step = (upper - lower) / len(DEFAULT_INDEX_COLORS)
         range_list = []
@@ -233,6 +236,16 @@ def set_frame(layout_item):
     layout_item.setFrameStrokeColor(QtGui.QColor(18, 101, 135, 255))
     layout_item.setFrameStrokeWidth(QgsLayoutMeasurement(5.0, QgsUnitTypes.LayoutMillimeters))
 
+
+def set_background(layout_item):
+    """
+    Method which sets the background settings for any QgsLayoutItem
+    :param layout_item: an object which extends QgsLayoutItem (e.g. QgsLayoutItemMap)
+    :return:
+    """
+
+    layout_item.setBackgroundEnabled(True)
+    layout_item.setBackgroundColor(QtGui.QColor(255, 255, 255, 50))
 
 def get_project_path(input_string):
     """
@@ -356,6 +369,16 @@ def main(args):
     table.addFrame(frame)
     # table.recalculateFrameSizes()
 
+    # add farmeye logo in bottom right corner
+    logo_path = 'images/logo.png'
+    logo = QgsLayoutItemPicture(layout)
+    logo.setPicturePath(logo_path)
+    logo.setReferencePoint(QgsLayoutItem.LowerRight)
+    layout.addLayoutItem(logo)
+    logo.attemptResize(QgsLayoutSize(250, 150, QgsUnitTypes.LayoutMillimeters))
+    logo.attemptMove(QgsLayoutPoint(page_size.width(), page_size.height(), QgsUnitTypes.LayoutMillimeters))
+    set_background(logo)
+
     # add scalebar
     scalebar = QgsLayoutItemScaleBar(layout)
     scalebar.setStyle('Single Box')
@@ -371,18 +394,46 @@ def main(args):
     scalebar.setMaximumBarWidth(250.0)
     scalebar.setHeight(8)
     scalebar.update()
+    scalebar.setReferencePoint(QgsLayoutItem.LowerRight)
     layout.addLayoutItem(scalebar)
-    scalebar.attemptMove(QgsLayoutPoint(575, 550, QgsUnitTypes.LayoutMillimeters))
+    scalebar.attemptMove(QgsLayoutPoint(580, 570, QgsUnitTypes.LayoutMillimeters))
 
-    # add farmeye logo in bottom right corner
-    logo_path = 'images/logo.png'
+    # north arrow
+    arrow_path = os.environ['QGIS'] + "/svg/arrows/NorthArrow_11.svg"
+    arrow = QgsLayoutItemPicture(layout)
+    arrow.setPicturePath(arrow_path)
+    arrow.setReferencePoint(QgsLayoutItem.UpperRight)
+    layout.addLayoutItem(arrow)
+    arrow.attemptMove(QgsLayoutPoint(830, 11, QgsUnitTypes.LayoutMillimeters))
+    arrow.attemptResize(QgsLayoutSize(50, 50, QgsUnitTypes.LayoutMillimeters))
 
-    logo = QgsLayoutItemPicture(layout)
-    logo.setPicturePath(logo_path)
-    layout.addLayoutItem(logo)
-    logo.attemptMove(QgsLayoutPoint(580, 370, QgsUnitTypes.LayoutMillimeters))
-    logo.attemptResize(QgsLayoutSize(250, 150, QgsUnitTypes.LayoutMillimeters))
-    #set_frame(logo)
+    if args.farm_name:
+        farm_name_label = QgsLayoutItemLabel(layout)
+        farm_name_label.setText(args.farm_name)
+        farm_name_label.setFont(header_font)
+        farm_name_label.adjustSizeToText()
+        layout.addLayoutItem(farm_name_label)
+        farm_name_label.attemptMove(QgsLayoutPoint(15, 450, QgsUnitTypes.LayoutMillimeters))
+        set_background(farm_name_label)
+
+    # color coding and label info
+    if args.color_code:
+        color_label = QgsLayoutItemLabel(layout)
+        color_label.setText("colour code: " + args.color_code)
+        color_label.setFont(header_font)
+        color_label.adjustSizeToText()
+        layout.addLayoutItem(color_label)
+        color_label.attemptMove(QgsLayoutPoint(15, 475, QgsUnitTypes.LayoutMillimeters))
+        set_background(color_label)
+
+    if args.label_data:
+        polygon_label_info = QgsLayoutItemLabel(layout)
+        polygon_label_info.setText("labels: " + args.label_data)
+        polygon_label_info.setFont(header_font)
+        polygon_label_info.adjustSizeToText()
+        layout.addLayoutItem(polygon_label_info)
+        polygon_label_info.attemptMove(QgsLayoutPoint(15, 500, QgsUnitTypes.LayoutMillimeters))
+        set_background(polygon_label_info)
 
     # farmeye.ie
     farmeye_label = QgsLayoutItemLabel(layout)
@@ -390,7 +441,8 @@ def main(args):
     farmeye_label.setFont(header_font)
     farmeye_label.adjustSizeToText()
     layout.addLayoutItem(farmeye_label)
-    farmeye_label.attemptMove(QgsLayoutPoint(50, 500, QgsUnitTypes.LayoutMillimeters))
+    farmeye_label.attemptMove(QgsLayoutPoint(15, 550, QgsUnitTypes.LayoutMillimeters))
+    set_background(farmeye_label)
 
     # this creates a QgsLayoutExporter object
     exporter = QgsLayoutExporter(layout)
