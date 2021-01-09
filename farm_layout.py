@@ -30,7 +30,9 @@ load_dotenv(dotenv_path=env_path, override=True)
 # dictionary defining polygon style
 # for accepted dict key values see https://qgis.org/api/qgsfillsymbollayer_8cpp_source.html#l00160
 DEFAULT_POLYGON_STYLE = {'color': '0,0,0,0', 'line_color': 'white', 'width_border': '2.0'}
+DEFAULT_INDEX_COLORS = ['#0011FF', '#0061FF', '#00D4FF', '#00FF66', '#00FF00', '#E5FF32', '#FCFC0C', '#FF9F00', '#FF3F00', '#FF0000']
 DEFAULT_PROJECT_DIR = 'projects/'
+Path(DEFAULT_PROJECT_DIR).mkdir(parents=True, exist_ok=True)
 
 
 def get_args():
@@ -157,14 +159,34 @@ def set_polygon_style(l, code=None):
         # create renderer to colour polygons in layer
         l.renderer().setSymbol(symbol)
         l.triggerRepaint()
+    elif code.startswith('index'):  # if an index is used for color coding
+        vals = []
+        for f in l.getFeatures():
+            vals.append(f[code])
+
+        lower = sorted(vals)[0]
+        upper = sorted(vals)[-1]
+        step = (upper - lower) / len(DEFAULT_INDEX_COLORS)
+        range_list = []
+        for c in DEFAULT_INDEX_COLORS:
+            cat = [lower, lower + step, c]
+            sym = QgsSymbol.defaultSymbol(l.geometryType())
+            sym.setColor(QtGui.QColor(cat[2]))
+            rng = QgsRendererRange(cat[0], cat[1], sym, '{0:.1f}-{1:.1f}'.format(cat[0], cat[1]))
+            range_list.append(rng)
+            lower = (lower + step) + 0.1
+        renderer = QgsGraduatedSymbolRenderer(code, range_list)
+        l.setRenderer(renderer)
+        l.triggerRepaint()
+
     else:  # otherwise create GraduatedSymbol based on specified colour code variable
         styles = QgsStyle().defaultStyle()
         defaultColorRampNames = styles.colorRampNames()
-        ramp = styles.colorRamp(defaultColorRampNames[-3])
+        ramp = styles.colorRamp(defaultColorRampNames[-6])
         renderer = QgsGraduatedSymbolRenderer()
         renderer.setClassAttribute(code)
         renderer.setSourceColorRamp(ramp)
-        # todo allow argument for number of classes (set to 10 here)
+        # todo allow argument for number of classes
         renderer.updateClasses(l, QgsGraduatedSymbolRenderer.EqualInterval, 10)
         l.setRenderer(renderer)
 
@@ -360,7 +382,15 @@ def main(args):
     layout.addLayoutItem(logo)
     logo.attemptMove(QgsLayoutPoint(580, 370, QgsUnitTypes.LayoutMillimeters))
     logo.attemptResize(QgsLayoutSize(250, 150, QgsUnitTypes.LayoutMillimeters))
-    set_frame(logo)
+    #set_frame(logo)
+
+    # farmeye.ie
+    farmeye_label = QgsLayoutItemLabel(layout)
+    farmeye_label.setText("farmeye.ie")
+    farmeye_label.setFont(header_font)
+    farmeye_label.adjustSizeToText()
+    layout.addLayoutItem(farmeye_label)
+    farmeye_label.attemptMove(QgsLayoutPoint(50, 500, QgsUnitTypes.LayoutMillimeters))
 
     # this creates a QgsLayoutExporter object
     exporter = QgsLayoutExporter(layout)
