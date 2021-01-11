@@ -264,7 +264,7 @@ class DataInput(tk.Frame):
         # create full project path
         project_path = self.get_project_path(self.ent_project_name.get())
 
-        map_count = 1 if self.ent_map_count is "" else int(self.ent_map_count.get())
+        map_count = 1 if self.ent_map_count.get() is "" else int(self.ent_map_count.get())
 
         table_fields = self.get_fields(self.table_field_vars)
         fields = ["name", "referenceArea_ha"] if len(table_fields) == 0 else table_fields
