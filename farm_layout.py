@@ -333,6 +333,16 @@ def main(args):
     # Create a layer
     new_layer = get_layer(args, project)
 
+    # order layer features by 'name'
+    request = QgsFeatureRequest()
+
+    # set order by field
+    #clause = QgsFeatureRequest.OrderByClause('to_int(name)', ascending=True)
+    #orderby = QgsFeatureRequest.OrderBy([clause])
+    #request.setOrderBy(orderby)
+
+    #features = new_layer.getFeatures(request)
+
     # set layer colours
     set_polygon_style(new_layer, args.color_code)
 
@@ -366,10 +376,16 @@ def main(args):
                                            page_size.height()-(50*c),
                                            QgsUnitTypes.LayoutMillimeters))
 
+    # table config
+    #table_config = QgsAttributeTableConfig()
+    #table_config.setSortExpression("to_int(name)")
+    #table_config.update(new_layer.getFeatures())
+
     # Create a table attached to specific layout
     table = QgsLayoutItemAttributeTable.create(layout)
     table.setVectorLayer(new_layer)  # add layer info to table
     table.setDisplayedFields(args.table_fields)
+
     # Create table font
     content_font, header_font = get_fonts()
     table.setContentFont(content_font)
