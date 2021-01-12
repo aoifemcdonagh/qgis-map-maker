@@ -428,7 +428,7 @@ def main(args):
     scalebar.attemptMove(QgsLayoutPoint(580, 570, QgsUnitTypes.LayoutMillimeters))
 
     # north arrow
-    arrow_path = os.environ['QGIS'] + "/svg/arrows/NorthArrow_11.svg"
+    arrow_path = "/usr/share/qgis/svg/arrows/NorthArrow_11.svg"
     arrow = QgsLayoutItemPicture(layout)
     arrow.setPicturePath(arrow_path)
     arrow.setReferencePoint(QgsLayoutItem.UpperRight)
