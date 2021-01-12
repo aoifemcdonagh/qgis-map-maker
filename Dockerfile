@@ -2,17 +2,18 @@ FROM ubuntu:18.04
 
 ENV LANG=en_EN.UTF-8
 
-RUN apt-get update
-RUN apt-get install --no-install-recommends --no-install-suggests --allow-unauthenticated -y gnupg software-properties-common ca-certificates wget locales
-RUN wget -qO - https://qgis.org/downloads/qgis-2020.gpg.key | gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/qgis-archive.gpg --import \
-RUN gpg --export --armor F7E06F06199EF2F2 | apt-key add - \
-RUN echo "deb http://qgis.org/debian buster main" >> /etc/apt/sources.list.d/qgis.list \
-RUN add-apt-repository "deb https://qgis.org/debian `lsb_release -c -s` main" \
-RUN apt-get update \
-RUN apt-get install --no-install-recommends --no-install-suggests --allow-unauthenticated -y qgis qgis-plugin-grass
+RUN apt update
+RUN apt install --no-install-recommends --no-install-suggests --allow-unauthenticated -y gnupg software-properties-common ca-certificates wget locales
+RUN wget -qO - https://qgis.org/downloads/qgis-2020.gpg.key | gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/qgis-archive.gpg --import
+RUN chmod a+r /etc/apt/trusted.gpg.d/qgis-archive.gpg
+#RUN echo "deb http://qgis.org/debian buster main" >> /etc/apt/sources.list.d/qgis.list
+RUN add-apt-repository "deb https://qgis.org/debian `lsb_release -c -s` main"
+RUN apt update
+RUN apt install --no-install-recommends --no-install-suggests --allow-unauthenticated -y qgis qgis-plugin-grass
 
 # install python
-RUN apt-get update && apt-get install -y --no-install-recommends python3.7 python3-pip
+RUN apt update
+RUN apt install -y --no-install-recommends python3.7 python3-pip
 
 ENV QGIS_SERVER_LOG_STDERR 1
 ENV QGIS_SERVER_LOG_LEVEL 2
