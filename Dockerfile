@@ -15,9 +15,6 @@ RUN apt install --no-install-recommends --no-install-suggests --allow-unauthenti
 RUN apt update
 RUN apt install -y --no-install-recommends python3.7 python3-pip
 
-ENV QGIS_SERVER_LOG_STDERR 1
-ENV QGIS_SERVER_LOG_LEVEL 2
-
 
 # If you have multiple Dockerfile steps that use different files from your context, COPY them individually,
 # rather than all at once. This will ensure that each step’s build cache is only invalidated
@@ -29,6 +26,6 @@ WORKDIR /home/qgis
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-
+CMD ["python3 gui.py"]
 
 
