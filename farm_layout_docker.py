@@ -307,7 +307,7 @@ def main(args):
     project.setCrs(crs)
 
     # add tile layer
-    tile_layer_url = 'type=xyz&url=https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+    tile_layer_url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
     tile_layer = QgsRasterLayer(tile_layer_url, 'ESRI', 'wms')
     # tile_layer.setCrs(crs)
 
