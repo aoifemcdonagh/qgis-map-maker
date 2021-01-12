@@ -19,7 +19,7 @@ RUN apt install -y --no-install-recommends python3.7 python3-pip
 # If you have multiple Dockerfile steps that use different files from your context, COPY them individually,
 # rather than all at once. This will ensure that each step’s build cache is only invalidated
 # (forcing the step to be re-run) if the specifically required files change.
-COPY requirements.txt /home/qgis
+#COPY requirements.txt /home/qgis
 
 COPY . /home/qgis
 WORKDIR /home/qgis

@@ -46,7 +46,7 @@ def get_args():
                         help="name of farm to include in layout")
     parser.add_argument("-l", "--layout_name", type=str, default="field layout",
                         help="optional name for layer. useful if creating a new layer in an existing project")
-    parser.add_argument("--map_count", type=int,
+    parser.add_argument("--map_count", type=int, default=1,
                         help="option to create multiple maps within the same layout")
     parser.add_argument("-t", "--table_fields", nargs="+", default=["name","referenceArea_ha"],
                         help="fields to display in table")  # nargs="+" returns a list object
