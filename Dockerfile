@@ -15,7 +15,7 @@ RUN apt-get update \
     && wget -qO - https://qgis.org/downloads/qgis-2020.gpg.key | gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/qgis-archive.gpg --import \
     && gpg --export --armor F7E06F06199EF2F2 | apt-key add - \
     && echo "deb http://qgis.org/debian buster main" >> /etc/apt/sources.list.d/qgis.list \
-    && add-apt-repository "deb https://qgis.org/debian `lsb_release -c -s` main"
+    && add-apt-repository "deb https://qgis.org/debian `lsb_release -c -s` main" \
     && apt-get update \
     && apt-get install --no-install-recommends --no-install-suggests --allow-unauthenticated -y \
         qgis \
