@@ -92,7 +92,7 @@ def get_layout(name, proj):
 
     # set layout size
     pc = layout.pageCollection()
-    pc.pages()[0].setPageSize('A1', QgsLayoutItemPage.Orientation.Landscape)
+    pc.pages()[0].setPageSize('A1', QgsLayoutItemPage.Landscape)
 
     layout.setName(layoutName)
     manager.addLayout(layout)
