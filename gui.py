@@ -247,6 +247,20 @@ class DataInput(tk.Frame):
             # chk_btn.grid()
             # self.color_fields[option] = self.color_var
 
+        # Area unit
+        self.frm_area_unit = tk.Frame(master=self.frm_data)
+        self.frm_area_unit.pack(fill=tk.X, expand=True, padx=frame_pad, pady=frame_pad)
+
+        self.lbl_area_unit = tk.Label(master=self.frm_area_unit, text="Area in acres")
+        self.lbl_area_unit.pack(fill=tk.Y, side=tk.LEFT)
+
+        self.area_acres = tk.IntVar()
+        self.chkbtn_area_unit = tk.Checkbutton(master=self.frm_area_unit,
+                                               variable=self.area_acres,
+                                               onvalue=1,
+                                               offvalue=0)
+        self.chkbtn_area_unit.pack(side=tk.RIGHT)
+
         # start processing
         self.btn_create = tk.Button(master=self, text="Create QGIS Layout", command=self.run_processing)
         self.btn_create.pack()
