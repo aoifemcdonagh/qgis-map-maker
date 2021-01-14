@@ -16,7 +16,7 @@
 1. Install Python 3.7 (64-bit)  
     https://www.python.org/downloads/windows/  
     NB **64-bit** Python to match 64-bit QGIS installation  
-1. Install Pycharm (only required for development)  
+1. Install Pycharm (only required for **development**)  
     https://www.jetbrains.com/pycharm/download/#section=windows 
 
 ## Set up Pycharm Environment
