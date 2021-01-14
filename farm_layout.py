@@ -13,24 +13,34 @@
             to create layer that can be edited, optional pdf export
         - specify folder name, give option to override existing folder
 """
-
-from qgis.core import *
-from qgis.PyQt import QtGui
 import os
 import logging
+from qgis.core import *
+from qgis.PyQt import QtGui
+from pathlib import Path
 
 # Identify environment variable file
-from pathlib import Path
 env_path = Path('.') / 'qgis_variables.env'
 # Load environment variables
 from dotenv import load_dotenv
 load_dotenv(dotenv_path=env_path, override=True)
 
-
 # dictionary defining polygon style
 # for accepted dict key values see https://qgis.org/api/qgsfillsymbollayer_8cpp_source.html#l00160
 DEFAULT_POLYGON_STYLE = {'color': '0,0,0,0', 'line_color': 'white', 'width_border': '2.0'}
-DEFAULT_INDEX_COLORS = ['#0011FF', '#00FF00', '#FCFC0C', '#FF0000']
+P_K_INDEX_COLORS = [[1, '#FF0000'],
+                   [2, '#FCFC0C'],
+                   [3, '#00FF00'],
+                   [4, '#0011FF']]  # Red = 1, Yellow = 2, Green = 3, Blue = 4
+PH_INDEX_COLORS = [[0, 5.5, '#f00000'],
+                   [5.6, 5.9, '#f08000'],
+                   [6.0, 6.2, '#e0f000'],
+                   [6.3, 6.5, '#80ff00'],
+                   [6.6, 6.8, '#00ff80'],
+                   [6.9, 7.1, '#40a0ff'],
+                   [7.2, 7.4, '#a060ff'],
+                   [7.5, 7.6, '#8000ff'],
+                   [7.7, 14.0, '#ff00ff']]
 DEFAULT_PROJECT_DIR = 'projects/'
 Path(DEFAULT_PROJECT_DIR).mkdir(parents=True, exist_ok=True)
 
@@ -163,23 +173,26 @@ def set_polygon_style(l, code=None):
         # create renderer to colour polygons in layer
         l.renderer().setSymbol(symbol)
         l.triggerRepaint()
-    elif code.startswith('index'):  # if an index is used for color coding
-        vals = []
-        for f in l.getFeatures():
-            vals.append(f[code])
 
-        #lower = sorted(vals)[0]
-        lower = 0
-        upper = sorted(vals)[-1]
-        step = (upper - lower) / len(DEFAULT_INDEX_COLORS)
-        range_list = []
-        for c in DEFAULT_INDEX_COLORS:
-            cat = [lower, lower + step, c]
+    elif code.startswith('index'):  # if an index is used for color coding
+        cat_list = []
+        for c in P_K_INDEX_COLORS:
             sym = QgsSymbol.defaultSymbol(l.geometryType())
-            sym.setColor(QtGui.QColor(cat[2]))
-            rng = QgsRendererRange(cat[0], cat[1], sym, '{0:.1f}-{1:.1f}'.format(cat[0], cat[1]))
+            sym.setColor(QtGui.QColor(c[1]))
+            cat = QgsRendererCategory(c[0], sym, str(c[0]))
+            cat_list.append(cat)
+
+        renderer = QgsCategorizedSymbolRenderer(code, cat_list)
+        l.setRenderer(renderer)
+        l.triggerRepaint()
+
+    elif code.startswith('pH'):
+        range_list = []
+        for c in PH_INDEX_COLORS:
+            sym = QgsSymbol.defaultSymbol(l.geometryType())
+            sym.setColor(QtGui.QColor(c[2]))
+            rng = QgsRendererRange(c[0], c[1], sym, '{0:.1f}-{1:.1f}'.format(c[0], c[1]))
             range_list.append(rng)
-            lower = (lower + step) + 0.1
         renderer = QgsGraduatedSymbolRenderer(code, range_list)
         l.setRenderer(renderer)
         l.triggerRepaint()
@@ -247,7 +260,7 @@ def set_background(layout_item):
     """
 
     layout_item.setBackgroundEnabled(True)
-    layout_item.setBackgroundColor(QtGui.QColor(255, 255, 255, 50))
+    layout_item.setBackgroundColor(QtGui.QColor(255, 255, 255, 128))
 
 def get_project_path(input_string):
     """
@@ -286,7 +299,7 @@ def main(args):
 
 
     # Initialize QGIS Application
-    QgsApplication.setPrefixPath(os.getenv("QGIS"), True)
+    #QgsApplication.setPrefixPath(os.getenv("QGIS"), True)
     app = QgsApplication([], False, None)
     QgsApplication.initQgis()
 
@@ -405,14 +418,15 @@ def main(args):
     # table.recalculateFrameSizes()
 
     # add farmeye logo in bottom right corner
-    logo_path = 'images/logo.png'
+    logo_path = 'images/farmeye_logo.png'
     logo = QgsLayoutItemPicture(layout)
     logo.setPicturePath(logo_path)
     logo.setReferencePoint(QgsLayoutItem.LowerRight)
     layout.addLayoutItem(logo)
-    logo.attemptResize(QgsLayoutSize(250, 150, QgsUnitTypes.LayoutMillimeters))
-    logo.attemptMove(QgsLayoutPoint(page_size.width(), page_size.height(), QgsUnitTypes.LayoutMillimeters))
-    set_background(logo)
+    logo.attemptResize(QgsLayoutSize(150, 85, QgsUnitTypes.LayoutMillimeters))
+    logo.attemptMove(QgsLayoutPoint(page_size.width(),
+                                    page_size.height(),
+                                    QgsUnitTypes.LayoutMillimeters))
 
     # add scalebar
     scalebar = QgsLayoutItemScaleBar(layout)
@@ -444,7 +458,7 @@ def main(args):
 
     if args.farm_name:
         farm_name_label = QgsLayoutItemLabel(layout)
-        farm_name_label.setText(args.farm_name)
+        farm_name_label.setText("Farm: " + args.farm_name)
         farm_name_label.setFont(header_font)
         farm_name_label.adjustSizeToText()
         layout.addLayoutItem(farm_name_label)
