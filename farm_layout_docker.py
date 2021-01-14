@@ -399,7 +399,7 @@ def main(args):
     # table.recalculateFrameSizes()
 
     # add farmeye logo in bottom right corner
-    logo_path = 'images/logo.png'
+    logo_path = 'images/farmeye_logo.png'
     logo = QgsLayoutItemPicture(layout)
     logo.setPicturePath(logo_path)
     logo.setReferencePoint(QgsLayoutItem.LowerRight)
