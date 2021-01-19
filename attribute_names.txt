@@ -1,0 +1,13 @@
+referenceArea_ha,Area (ha)
+soilTest_date,Soil Test Date
+P_mg_per_l,P (mg/l)
+index_K,K index
+pH_water,pH (water)
+pH_SMP,pH (SMP)
+index_P_grass,P index
+farmeyeId,Farmeye ID
+index_P_nongrass,P index (non-grass)
+name,Name
+K_mg_per_l,K (mg/l)
+referenceArea,Reference Area
+soilTest_id,Soil Test ID
