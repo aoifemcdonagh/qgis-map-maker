@@ -46,7 +46,8 @@ PH_INDEX_COLORS = [[0, 5.5, '#f00000'],
 DEFAULT_PROJECT_DIR = 'projects/'
 Path(DEFAULT_PROJECT_DIR).mkdir(parents=True, exist_ok=True)
 JSON_TO_UI_DICT = layout_utils.get_JSON_to_UI()  # dict for converting json fields to UI friendly strings
-
+HECTARE_STRING = 'Area (ha)'
+ACRE_STRING = 'Area (ac)'
 
 def get_args():
     import argparse
@@ -67,6 +68,8 @@ def get_args():
                         help="variable to colour code map")
     parser.add_argument("--label_data", type=str,
                         help="data column to create labels out of")
+    parser.add_argument("--area_acres", type=bool,
+                        help="display area in acres in table")
     parser.add_argument("--pdf", type=str, help="path to .pdf file to export layout to")
     return parser.parse_args()
 
@@ -78,13 +81,30 @@ def get_args():
 """
 
 
-#def get_table_fields(arguments):
+def get_table_fields(arguments):
+    json_fields = ['name', 'referenceArea_ha']  # default fields always present in table
+
+    if arguments.table_fields is not None:
+        for item in arguments.table_fields:
+            json_fields.append(item)
+
+    # convert to UI names
+    UI_names = []
+    for name in json_fields:
+        UI_names.append(JSON_TO_UI_DICT[name])
+
+    if arguments.area_acres:
+        index = UI_names.index(HECTARE_STRING)
+        UI_names.pop(index)
+        UI_names.insert(index, ACRE_STRING)
+
+    return UI_names
 
 
 def get_layer(arguments, proj):
     # todo make copy of layer file so that it can be edited and not alter original
     # create layer data file
-    original_path = Path(arguments.path)
+    original_path = Path(arguments.file)
     layer_data = original_path.parent / Path(original_path.stem + '_qgis_layer' + original_path.suffix)
     copyfile(original_path, layer_data)
 
@@ -94,21 +114,8 @@ def get_layer(arguments, proj):
 
     # create layer
     layer = QgsVectorLayer(str(layer_data.resolve()), layout_name, "ogr")
-    fields = layer.fields()
 
-    for field in fields:
-        # todo rename fields to UI version
-        print(field.name())
-
-    # round to two decimal places all feature attribures that will go into table
-    # todo round without editing the source file for layer!
-    # possibly create a new temp file? or file in same project dir??
-    with edit(layer):
-        for feature in layer.getFeatures():
-            for name in arguments.table_fields:
-                if isinstance(feature[name], float):  # if a float value round to two decimal places
-                    feature.setAttribute(feature.fieldNameIndex(name), round(feature[name], 2))
-                    layer.updateFeature(feature)
+    layer = modify_layer(layer, arguments)  # modify based on user args
 
     if not layer.isValid():
         logging.info("Layer failed to load!")
@@ -116,6 +123,46 @@ def get_layer(arguments, proj):
         proj.addMapLayer(layer)
 
     return layer
+
+
+def modify_layer(l, a):
+    """
+    Method which modifies layer based on user input
+     - performs sorting of layer features based on 'name' attribute
+     - applies expressions to data
+     - rounds float values to 2 decimal places
+     - changes headings to UI friendly versions
+    :param l:
+    :param a: argument namespace
+    :return:
+    """
+
+    with edit(l):
+
+        # UI friendly attribute names
+        for field in l.fields():
+            field_id = l.fields().indexFromName(field.name())
+            l.renameAttribute(field_id, JSON_TO_UI_DICT[field.name()])
+
+        # convert area to acres
+        if a.area_acres:
+            field_id = l.fields().indexFromName(HECTARE_STRING)
+            l.renameAttribute(field_id, ACRE_STRING)
+
+            for feature in l.getFeatures():
+                feature.setAttribute(feature.fieldNameIndex(ACRE_STRING), feature[ACRE_STRING]*2.47105)
+                l.updateFeature(feature)
+
+        # round to two decimal places all feature attributes that will go into table
+        for feature in l.getFeatures():
+            for name in get_table_fields(a):
+                if isinstance(feature[name], float):  # if a float value round to two decimal places
+                    feature.setAttribute(feature.fieldNameIndex(name), round(feature[name], 2))
+                    l.updateFeature(feature)
+
+        # sort based on field name
+
+    return l
 
 
 def get_layout(name, proj):
@@ -385,8 +432,10 @@ def main(args):
     # Create a layer
     new_layer = get_layer(args, project)
 
+    color_code = None if args.color_code is None or "" else JSON_TO_UI_DICT[args.color_code]
+
     # set layer colours
-    set_polygon_style(new_layer, args.color_code)
+    set_polygon_style(new_layer, color_code)
 
     # set layer labels
     if args.label_data is not None or "":
@@ -395,8 +444,8 @@ def main(args):
     """
         Data column
     """
-    data_col_width = 200
-    """
+    data_col_width = 150
+
     # order layer features by 'name'
     request = QgsFeatureRequest()
 
@@ -407,16 +456,14 @@ def main(args):
 
     features = new_layer.getFeatures(request)
 
-    # table config
-    table_config = QgsAttributeTableConfig()
-    table_config.setSortExpression("to_int(name)")
-    table_config.update(new_layer.fields())
-    new_layer.setAttributeTableConfig(table_config)
-    """
+    for feature in features:
+        print(feature.attributes())
+
+
     # Create a table attached to specific layout
     table = QgsLayoutItemAttributeTable.create(layout)
     table.setVectorLayer(new_layer)  # add layer info to table
-    table.setDisplayedFields(args.table_fields)
+    table.setDisplayedFields(get_table_fields(args))
     table.setMaximumNumberOfFeatures(100)
     table.setVerticalGrid(False)  # don't draw vertical lines
 

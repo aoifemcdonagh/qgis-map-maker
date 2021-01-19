@@ -25,6 +25,7 @@ class QGISArgs:
         self.table_fields = []
         self.color_code = None
         self.label_data = None
+        self.area_acres = None
         self.pdf = None
         self.__dict__.update(kwargs)
 
@@ -252,11 +253,11 @@ class DataInput(tk.Frame):
         self.lbl_area_unit = tk.Label(master=self.frm_area_unit, text="Area in acres")
         self.lbl_area_unit.pack(fill=tk.Y, side=tk.LEFT)
 
-        self.area_acres = tk.IntVar()
+        self.area_acres = tk.BooleanVar()
         self.chkbtn_area_unit = tk.Checkbutton(master=self.frm_area_unit,
                                                variable=self.area_acres,
-                                               onvalue=1,
-                                               offvalue=0)
+                                               onvalue=True,
+                                               offvalue=False)
         self.chkbtn_area_unit.pack(side=tk.RIGHT)
 
         # start processing
@@ -279,13 +280,15 @@ class DataInput(tk.Frame):
         map_count = 1 if self.ent_map_count.get() is "" else int(self.ent_map_count.get())
 
         table_fields = self.get_fields(self.table_field_vars)
-        fields = ["name", "referenceArea_ha"] if len(table_fields) == 0 else table_fields
+        fields = None if len(table_fields) == 0 else table_fields
 
         color_code = self.color_var.get()
         color_code = None if color_code is "" else UI_TO_JSON_DICT[color_code]
 
         label_var = self.label_var.get()
         label_var = None if label_var is "" else UI_TO_JSON_DICT[label_var]
+
+        area_acres = self.area_acres.get()
 
         qgis_args = QGISArgs(file=self.input_source_file.get(),
                              project_path=project_path,
@@ -294,7 +297,8 @@ class DataInput(tk.Frame):
                              map_count=map_count,
                              table_fields=fields,
                              color_code=color_code,
-                             label_data=label_var)
+                             label_data=label_var,
+                             area_acres=area_acres)
 
         self.master.set_qgis_args(qgis_args)
 
