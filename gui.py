@@ -6,11 +6,12 @@ from tkinter import filedialog
 from pathlib import Path
 import threading
 import os
-import farm_layout
+import advanced_layout
+import layout_utils
 
 DEFAULT_PROJECT_DIR = 'projects/'
 Path(DEFAULT_PROJECT_DIR).mkdir(parents=True, exist_ok=True)
-
+UI_TO_JSON_DICT = layout_utils.get_UI_to_JSON()
 
 # namespace to hold arguments to pass to farm_layout.py
 class QGISArgs:
@@ -76,7 +77,7 @@ class MainApplication(tk.Frame):
         # todo catch errors from running qgis e.g. required args not specified
         # notify and give option to 'restart' another project
         try:
-            farm_layout.main(self.qgis_args)
+            advanced_layout.main(self.qgis_args)
         except AssertionError:
             self.error_message.set("ERROR: Required information not given. \n (project name or source file) \n\nQGIS project not created")
             self.error.set(True)
@@ -189,12 +190,12 @@ class DataInput(tk.Frame):
         #self.btn_table_variables.menu.add_command(command=self.update_table_variables)
 
         self.table_field_vars = {}
-        for option in get_form_fields('column_names.txt'):
+        for UI_name in UI_TO_JSON_DICT.keys():
             table_var = tk.IntVar()
-            self.btn_table_variables.menu.add_checkbutton(label=option, variable=table_var)
+            self.btn_table_variables.menu.add_checkbutton(label=UI_name, variable=table_var)
             #chk_btn = tk.Checkbutton(self.frm_table_variables, text=option, variable=var)
             #chk_btn.grid()
-            self.table_field_vars[option] = table_var
+            self.table_field_vars[UI_name] = table_var
 
         #
         # colour code variable
@@ -214,13 +215,11 @@ class DataInput(tk.Frame):
 
         self.btn_color_variables.menu = tk.Menu(self.btn_color_variables, tearoff=0)
         self.btn_color_variables["menu"] = self.btn_color_variables.menu
-        #self.color_fields = {}
 
-        for option in get_form_fields('column_names.txt'):
-            self.btn_color_variables.menu.add_radiobutton(label=option, variable=self.color_var, value=option)
-            # chk_btn = tk.Checkbutton(self.frm_table_variables, text=option, variable=var)
-            # chk_btn.grid()
-            #self.color_fields[option] = self.color_var
+        for UI_name in UI_TO_JSON_DICT.keys():
+            self.btn_color_variables.menu.add_radiobutton(label=UI_name,
+                                                          variable=self.color_var,
+                                                          value=UI_name)
 
         #
         # label variable
@@ -241,11 +240,10 @@ class DataInput(tk.Frame):
         self.btn_label_variables.menu = tk.Menu(self.btn_label_variables, tearoff=0)
         self.btn_label_variables["menu"] = self.btn_label_variables.menu
 
-        for option in get_form_fields('column_names.txt'):
-            self.btn_label_variables.menu.add_radiobutton(label=option, variable=self.label_var, value=option)
-            # chk_btn = tk.Checkbutton(self.frm_table_variables, text=option, variable=var)
-            # chk_btn.grid()
-            # self.color_fields[option] = self.color_var
+        for UI_name in UI_TO_JSON_DICT.keys():
+            self.btn_label_variables.menu.add_radiobutton(label=UI_name,
+                                                          variable=self.label_var,
+                                                          value=UI_name)
 
         # Area unit
         self.frm_area_unit = tk.Frame(master=self.frm_data)
@@ -284,10 +282,10 @@ class DataInput(tk.Frame):
         fields = ["name", "referenceArea_ha"] if len(table_fields) == 0 else table_fields
 
         color_code = self.color_var.get()
-        color_code = None if color_code is "" else color_code
+        color_code = None if color_code is "" else UI_TO_JSON_DICT[color_code]
 
         label_var = self.label_var.get()
-        label_var = None if label_var is "" else label_var
+        label_var = None if label_var is "" else UI_TO_JSON_DICT[label_var]
 
         qgis_args = QGISArgs(file=self.input_source_file.get(),
                              project_path=project_path,
@@ -338,7 +336,7 @@ class DataInput(tk.Frame):
         :param d:
         :return:
         """
-        fields = [name for name, value in d.items() if value.get() == 1]
+        fields = [UI_TO_JSON_DICT[name] for name, value in d.items() if value.get() == 1]
         return fields
 
     def update_table_variables(self):
