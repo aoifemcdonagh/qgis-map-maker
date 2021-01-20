@@ -568,7 +568,7 @@ def main(args):
         labels_text.append("P index: grass")
 
     n_labels = len(labels_text)
-    spacing = 15  # mm?
+    spacing = 10  # mm?
 
     for i in range(n_labels):
         label = QgsLayoutItemLabel(layout)
