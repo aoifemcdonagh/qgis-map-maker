@@ -18,6 +18,7 @@ import logging
 from shutil import copyfile
 from qgis.core import *
 from qgis.PyQt import QtGui
+from PyQt5.QtCore import Qt as qt5
 from pathlib import Path
 from dotenv import load_dotenv
 import layout_utils
@@ -29,7 +30,7 @@ load_dotenv(dotenv_path=env_path, override=True)
 
 # dictionary defining polygon style
 # for accepted dict key values see https://qgis.org/api/qgsfillsymbollayer_8cpp_source.html#l00160
-DEFAULT_POLYGON_STYLE = {'color': '0,0,0,0', 'line_color': 'white', 'width_border': '2.0'}
+DEFAULT_POLYGON_STYLE = {'color': '3,190,0,80', 'line_color': 'white', 'width_border': '2.0'}
 P_K_INDEX_COLORS = [[1, '#FF0000'],
                     [2, '#FCFC0C'],
                     [3, '#00FF00'],
@@ -48,6 +49,7 @@ Path(DEFAULT_PROJECT_DIR).mkdir(parents=True, exist_ok=True)
 JSON_TO_UI_DICT = layout_utils.get_JSON_to_UI()  # dict for converting json fields to UI friendly strings
 HECTARE_STRING = 'Area (ha)'
 ACRE_STRING = 'Area (ac)'
+DEFAULT_COL_WIDTH = 45  # in mm
 
 def get_args():
     import argparse
@@ -62,7 +64,7 @@ def get_args():
                         help="optional name for layer. useful if creating a new layer in an existing project")
     parser.add_argument("--map_count", type=int, default=1,
                         help="option to create multiple maps within the same layout")
-    parser.add_argument("-t", "--table_fields", nargs="+", default=["name", "referenceArea_ha"],
+    parser.add_argument("-t", "--table_fields", nargs="+",
                         help="fields to display in table")  # nargs="+" returns a list object
     parser.add_argument("-c", "--color_code", type=str, default=None,
                         help="variable to colour code map")
@@ -102,6 +104,12 @@ def get_table_fields(arguments):
 
 
 def get_layer(arguments, proj):
+    """
+    method to get layer and feature count for that layer
+    :param arguments:
+    :param proj:
+    :return:
+    """
     # todo make copy of layer file so that it can be edited and not alter original
     # create layer data file
     original_path = Path(arguments.file)
@@ -115,14 +123,14 @@ def get_layer(arguments, proj):
     # create layer
     layer = QgsVectorLayer(str(layer_data.resolve()), layout_name, "ogr")
 
-    layer = modify_layer(layer, arguments)  # modify based on user args
+    layer, feature_count = modify_layer(layer, arguments)  # modify based on user args
 
     if not layer.isValid():
         logging.info("Layer failed to load!")
     else:
         proj.addMapLayer(layer)
 
-    return layer
+    return layer, feature_count
 
 
 def modify_layer(l, a):
@@ -136,6 +144,7 @@ def modify_layer(l, a):
     :param a: argument namespace
     :return:
     """
+    count = 0  # number of features in layer
 
     with edit(l):
 
@@ -155,6 +164,7 @@ def modify_layer(l, a):
 
         # round to two decimal places all feature attributes that will go into table
         for feature in l.getFeatures():
+            count += 1  # iterate count
             for name in get_table_fields(a):
                 if isinstance(feature[name], float):  # if a float value round to two decimal places
                     feature.setAttribute(feature.fieldNameIndex(name), round(feature[name], 2))
@@ -162,7 +172,7 @@ def modify_layer(l, a):
 
         # sort based on field name
 
-    return l
+    return l, count
 
 
 def get_layout(name, proj):
@@ -213,25 +223,6 @@ def get_rectangle(l, proj):
     return rect
 
 
-"""
-def round_data(l, dec_places):
-
-    round data to a given number of decimal places if it's a double
-    :param l:
-    :param dec_places:
-    :return:
-
-
-    # set expression to round table items to 2 decimal places
-    expressions = []
-    for name in args.table_fields:
-        # create an expression for each field specified in arguments
-        exp = QgsExpression('round(' + name + ', 2)')
-        expressions.append(exp)
-
-    """
-
-
 def set_polygon_style(l, code=None):
     """
     function which will render colours of polygons based on user input...
@@ -248,7 +239,7 @@ def set_polygon_style(l, code=None):
         l.renderer().setSymbol(symbol)
         l.triggerRepaint()
 
-    elif code.startswith('index'):  # if an index is used for color coding
+    elif 'index' in code:  # if an index is used for color coding
         cat_list = []
         for c in P_K_INDEX_COLORS:
             sym = QgsSymbol.defaultSymbol(l.geometryType())
@@ -290,9 +281,8 @@ def set_layer_labels(l, label_data='name'):
 
     # set up label text format
     text_format = QgsTextFormat()
-    text_format.setFont(QtGui.QFont("Arial", 10))
-    text_format.setSize(44)
-    text_format.setNamedStyle("bold")
+    text_format.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+    text_format.setSize(50)
     buffer = QgsTextBufferSettings()
     buffer.setEnabled(True)
     buffer.setSize(1.5)
@@ -300,11 +290,10 @@ def set_layer_labels(l, label_data='name'):
     shadow = QgsTextShadowSettings()
     shadow.setEnabled(True)
     text_format.setShadow(shadow)
-    text_format.setSizeUnit(QgsUnitTypes.RenderMapUnits)
+    text_format.setSizeUnit(QgsUnitTypes.RenderPoints)
     label_settings.setFormat(text_format)
     l.setLabeling(QgsVectorLayerSimpleLabeling(label_settings))
     l.setLabelsEnabled(True)
-    # l.triggerRepaint()
 
 
 def get_fonts():
@@ -320,6 +309,26 @@ def get_fonts():
     header.setPointSize(32)
 
     return [content, header]
+
+
+def get_text_formats():
+    """
+    Method which generates QgsTextFormat objects for headings and content
+    size is in points
+    :return:
+    """
+
+    heading_format = QgsTextFormat()
+    heading_format.setFont(QtGui.QFont("Arial", 32))
+    heading_format.setSize(10)
+    heading_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
+
+    content_format = QgsTextFormat()
+    content_format.setFont(QtGui.QFont("Arial", 30))
+    content_format.setSize(9)
+    content_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
+
+    return heading_format, content_format
 
 
 def set_frame(layout_item):
@@ -373,6 +382,26 @@ def get_project_path(input_string):
     return project_path
 
 
+def get_table_height(n, h_format, c_format):
+    """
+    Method which gets table height based on font size, and number of features in layer
+    returns height in mm
+    :param n: number of features in layer
+    :param h_format: header font
+    :param c_format: content font
+    :return:
+    """
+    margin = 1  # num pixels margin
+    line_width = 0.5
+
+    h_size = h_format.size()
+    c_size = c_format.size()
+
+    size = h_size + (2*margin) + (2*line_width) + (n*(c_size + (2*margin) + line_width))
+
+    return size
+
+
 def main(args):
     """
     :return:
@@ -409,7 +438,7 @@ def main(args):
 
     # add tile layer
     tile_layer_url = 'type=xyz&url=https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-    tile_layer = QgsRasterLayer(tile_layer_url, 'ESRI', 'wms')
+    tile_layer = QgsRasterLayer(tile_layer_url, '', 'wms')
     # tile_layer.setCrs(crs)
 
     if tile_layer.isValid():
@@ -427,10 +456,10 @@ def main(args):
 
     page_padding = 15
     map_padding = 10
-    content_font, header_font = get_fonts()
+    text_format_heading, text_format_content = get_text_formats()
 
     # Create a layer
-    new_layer = get_layer(args, project)
+    new_layer, num_features = get_layer(args, project)
 
     color_code = None if args.color_code is None or "" else JSON_TO_UI_DICT[args.color_code]
 
@@ -439,12 +468,12 @@ def main(args):
 
     # set layer labels
     if args.label_data is not None or "":
-        set_layer_labels(new_layer, args.label_data)
+        set_layer_labels(new_layer, JSON_TO_UI_DICT[args.label_data])
 
     """
         Data column
     """
-    data_col_width = 150
+    data_col_width = DEFAULT_COL_WIDTH * (len(get_table_fields(args))) + page_padding
 
     # order layer features by 'name'
     request = QgsFeatureRequest()
@@ -456,9 +485,8 @@ def main(args):
 
     features = new_layer.getFeatures(request)
 
-    for feature in features:
-        print(feature.attributes())
-
+    #for feature in features:
+    #   print(feature.attributes())
 
     # Create a table attached to specific layout
     table = QgsLayoutItemAttributeTable.create(layout)
@@ -466,43 +494,54 @@ def main(args):
     table.setDisplayedFields(get_table_fields(args))
     table.setMaximumNumberOfFeatures(100)
     table.setVerticalGrid(False)  # don't draw vertical lines
+    columns = table.columns()
+    for column in columns:
+        column.setWidth(DEFAULT_COL_WIDTH)  # width in mm
+        column.setHAlignment(qt5.AlignHCenter)
+
+    table.setColumns(columns)
 
     # Create table font
-    
-    table.setContentFont(content_font)
-    table.setHeaderFont(header_font)
-
+    table.setHeaderFont(text_format_heading.font())
+    table.setContentFont(text_format_content.font())
+    # get table height based on layer features and font sizes
+    table_height = get_table_height(num_features, text_format_heading, text_format_content)
     layout.addMultiFrame(table)
 
     # Base class for frame items, which form a layout multiframe item.
     frame = QgsLayoutFrame(layout, table)
     frame.setFrameEnabled(True)  # draw frame around outside since vertical grid lines are not drawn
     frame.setFrameStrokeWidth(QgsLayoutMeasurement(0.5, QgsUnitTypes.LayoutMillimeters))
-    # todo dynamically resize frame to match table size?
     frame.attemptResize(QgsLayoutSize(table.totalWidth(),
-                                      page_size.height()-(2*page_padding)))
+                                      table_height))
     frame.attemptMove(QgsLayoutPoint(page_padding,
                                      page_padding,
                                      QgsUnitTypes.LayoutMillimeters))
     table.addFrame(frame)
-    # table.recalculateFrameSizes()
 
     #
     # Legend
     #
-
     if args.color_code:
         legend = QgsLayoutItemLegend(layout)
-        #legend.setTitle("Legend")
+
+        root = QgsLayerTree()
+
+        # don't include ESRI in legend
+        for lyr in project.mapLayers().values():
+            if lyr.name() != 'ESRI':
+                root.addLayer(lyr)
+
+        legend.model().setRootGroup(root)
         layout.addLayoutItem(legend)
-        legend.setReferencePoint(QgsLayoutItem.LowerRight)
-        legend.attemptMove(QgsLayoutPoint(data_col_width,
-                                          page_size.height() - page_padding,
+        legend.setReferencePoint(QgsLayoutItem.UpperLeft)
+        legend.attemptMove(QgsLayoutPoint(page_padding,
+                                          page_padding + table_height + map_padding,
                                           QgsUnitTypes.LayoutMillimeters))
 
         # legend fonts and icon sizes
-        legend.setStyleFont(QgsLegendStyle.Subgroup, header_font)
-        legend.setStyleFont(QgsLegendStyle.SymbolLabel, content_font)
+        legend.setStyleFont(QgsLegendStyle.Subgroup, text_format_heading.font())
+        legend.setStyleFont(QgsLegendStyle.SymbolLabel, text_format_content.font())
         legend.setStyleMargin(QgsLegendStyle.SymbolLabel, 5.0)
         legend.setSymbolHeight(10.0)
         legend.setSymbolWidth(16.0)
@@ -512,37 +551,35 @@ def main(args):
     if args.farm_name:
         farm_name_label = QgsLayoutItemLabel(layout)
         farm_name_label.setText("Farm: " + args.farm_name)
-        farm_name_label.setFont(header_font)
+        farm_name_label.setFont(text_format_heading.font())
         farm_name_label.adjustSizeToText()
         layout.addLayoutItem(farm_name_label)
         farm_name_label.attemptMove(QgsLayoutPoint(15, 450, QgsUnitTypes.LayoutMillimeters))
 
-    """  these labels can be replaced by legend
-    # color coding and label info
-    if args.color_code:
-        color_label = QgsLayoutItemLabel(layout)
-        color_label.setText("colour code: " + args.color_code)
-        color_label.setFont(header_font)
-        color_label.adjustSizeToText()
-        layout.addLayoutItem(color_label)
-        color_label.attemptMove(QgsLayoutPoint(15, 475, QgsUnitTypes.LayoutMillimeters))
+    # labels at bottom
+    labels_text = ["Map prepared by Farmeye",
+                   "farmeye.ie",
+                   "Base layer copyright ESRI"]
 
-    if args.label_data:
-        polygon_label_info = QgsLayoutItemLabel(layout)
-        polygon_label_info.setText("labels: " + args.label_data)
-        polygon_label_info.setFont(header_font)
-        polygon_label_info.adjustSizeToText()
-        layout.addLayoutItem(polygon_label_info)
-        polygon_label_info.attemptMove(QgsLayoutPoint(15, 500, QgsUnitTypes.LayoutMillimeters))
-    """
-    # farmeye.ie
-    farmeye_label = QgsLayoutItemLabel(layout)
-    farmeye_label.setText("farmeye.ie")
-    farmeye_label.setFont(header_font)
-    farmeye_label.adjustSizeToText()
-    layout.addLayoutItem(farmeye_label)
-    farmeye_label.attemptMove(QgsLayoutPoint(15, 550, QgsUnitTypes.LayoutMillimeters))
-    set_background(farmeye_label)
+    if args.label_data is not None or "":  # text label identifying polygon label variable
+        labels_text.append("Label variable: " + JSON_TO_UI_DICT[args.label_data])
+
+    if color_code == 'P index' or JSON_TO_UI_DICT[args.label_data] == 'P index':
+        labels_text.append("P index: grass")
+
+    n_labels = len(labels_text)
+    spacing = 15  # mm?
+
+    for i in range(n_labels):
+        label = QgsLayoutItemLabel(layout)
+        label.setText(labels_text[i])
+        label.setFont(QtGui.QFont("Ariel", 20))
+        layout.addLayoutItem(label)
+        label.adjustSizeToText()
+        label.setReferencePoint(QgsLayoutItem.LowerLeft)
+        label.attemptMove(QgsLayoutPoint(page_padding,
+                                         page_size.height() - page_padding - (i*spacing),
+                                         QgsUnitTypes.LayoutMillimeters))
 
     """
         Map(s)
@@ -602,7 +639,6 @@ def main(args):
     scalebar.setUnitsPerSegment(100)
     scalebar.setLinkedMap(farm_map)
     scalebar.setUnitLabel('m')
-    #scalebar.setFont(QtGui.QFont('Arial', 36))
     scalebar.setMaximumBarWidth(250.0)
     scalebar.setHeight(8)
 
