@@ -4,7 +4,6 @@
 import tkinter as tk
 from tkinter import filedialog
 from pathlib import Path
-import threading
 import os
 import advanced_layout
 import layout_utils
