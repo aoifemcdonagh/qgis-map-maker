@@ -22,7 +22,7 @@ from PyQt5.QtCore import Qt as qt5
 from pathlib import Path
 from dotenv import load_dotenv
 from datetime import datetime
-import layout_utils
+import layout_utils as utils
 
 # Identify environment variable file
 env_path = Path('.') / 'qgis_variables.env'
@@ -47,10 +47,13 @@ PH_INDEX_COLORS = [[0, 5.5, '#f00000'],
                    [7.7, 14.0, '#ff00ff']]
 DEFAULT_PROJECT_DIR = 'projects/'
 Path(DEFAULT_PROJECT_DIR).mkdir(parents=True, exist_ok=True)
-JSON_TO_UI_DICT = layout_utils.get_JSON_to_UI()  # dict for converting json fields to UI friendly strings
+JSON_TO_UI_DICT = utils.get_JSON_to_UI()  # dict for converting json fields to UI friendly strings
 HECTARE_STRING = 'Area (ha)'
 ACRE_STRING = 'Area (ac)'
-DEFAULT_COL_WIDTH = 45  # in mm
+DEFAULT_CONTENT_SIZE = 9 # mm??
+DEFAULT_COL_WIDTH = 45  # mm
+MAX_TABLE_HEIGHT = 480  # mm
+
 
 def get_args():
     import argparse
@@ -297,64 +300,6 @@ def set_layer_labels(l, label_data='name'):
     l.setLabelsEnabled(True)
 
 
-def get_fonts():
-    """
-    Function which returns fonts QtGui.QFont objects
-    todo optionally base fonts on layout size
-    :return:
-    """
-
-    content = QtGui.QFont()
-    header = QtGui.QFont()
-    content.setPointSize(30)
-    header.setPointSize(32)
-
-    return [content, header]
-
-
-def get_text_formats():
-    """
-    Method which generates QgsTextFormat objects for headings and content
-    size is in points
-    :return:
-    """
-
-    heading_format = QgsTextFormat()
-    heading_format.setFont(QtGui.QFont("Arial", 32))
-    heading_format.setSize(10)
-    heading_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
-
-    content_format = QgsTextFormat()
-    content_format.setFont(QtGui.QFont("Arial", 30))
-    content_format.setSize(9)
-    content_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
-
-    return heading_format, content_format
-
-
-def set_frame(layout_item):
-    """
-    Method which sets the frame settings for any QgsLayoutItem
-    :param layout_item: an object which extends QgsLayoutItem (e.g. QgsLayoutItemMap)
-    :return:
-    """
-
-    layout_item.setFrameEnabled(True)
-    layout_item.setFrameStrokeColor(QtGui.QColor(18, 101, 135, 255))
-    layout_item.setFrameStrokeWidth(QgsLayoutMeasurement(5.0, QgsUnitTypes.LayoutMillimeters))
-
-
-def set_background(layout_item):
-    """
-    Method which sets the background settings for any QgsLayoutItem
-    :param layout_item: an object which extends QgsLayoutItem (e.g. QgsLayoutItemMap)
-    :return:
-    """
-
-    layout_item.setBackgroundEnabled(True)
-    layout_item.setBackgroundColor(QtGui.QColor(255, 255, 255, 128))
-
-
 def get_project_path(input_string):
     """
 
@@ -383,20 +328,17 @@ def get_project_path(input_string):
     return project_path
 
 
-def get_table_height(n, h_format, c_format):
+def get_table_height(n, h_size, c_size):
     """
     Method which gets table height based on font size, and number of features in layer
     returns height in mm
     :param n: number of features in layer
-    :param h_format: header font
-    :param c_format: content font
+    :param h_size: header font size
+    :param c_size: content font size
     :return:
     """
     margin = 1  # num pixels margin
     line_width = 0.5
-
-    h_size = h_format.size()
-    c_size = c_format.size()
 
     size = h_size + (2*margin) + (2*line_width) + (n*(c_size + (2*margin) + line_width))
 
@@ -457,7 +399,6 @@ def main(args):
 
     page_padding = 15
     map_padding = 10
-    text_format_heading, text_format_content = get_text_formats()
 
     # Create a layer
     new_layer, num_features = get_layer(args, project)
@@ -487,6 +428,7 @@ def main(args):
     features = new_layer.getFeatures(request)
 
     #for feature in features:
+    # todo sort layer features by name?
     #   print(feature.attributes())
 
     # Create a table attached to specific layout
@@ -503,10 +445,11 @@ def main(args):
     table.setColumns(columns)
 
     # Create table font
-    table.setHeaderFont(text_format_heading.font())
-    table.setContentFont(text_format_content.font())
+    text_format_heading, text_format_content = utils.get_text_formats(num_features)
+    table.setHeaderTextFormat(text_format_heading)
+    table.setContentTextFormat(text_format_content)
     # get table height based on layer features and font sizes
-    table_height = get_table_height(num_features, text_format_heading, text_format_content)
+    table_height = utils.get_table_height(num_features, text_format_heading.size(), text_format_content.size())
     layout.addMultiFrame(table)
 
     # Base class for frame items, which form a layout multiframe item.
@@ -525,7 +468,6 @@ def main(args):
     #
     if args.color_code:
         legend = QgsLayoutItemLegend(layout)
-
         root = QgsLayerTree()
 
         # don't include ESRI in legend
@@ -535,10 +477,17 @@ def main(args):
 
         legend.model().setRootGroup(root)
         layout.addLayoutItem(legend)
+
+        legend.setResizeToContents(False)
+        legend.attemptResize(QgsLayoutSize(50, 85))
+
         legend.setReferencePoint(QgsLayoutItem.UpperLeft)
         legend.attemptMove(QgsLayoutPoint(page_padding,
                                           page_padding + table_height + map_padding,
                                           QgsUnitTypes.LayoutMillimeters))
+
+        if table_height > 400:  # allow more space in table
+            legend.attemptMove(QgsLayoutPoint(115, 500, QgsUnitTypes.LayoutMillimeters))
 
         # legend fonts and icon sizes
         legend.setStyleFont(QgsLegendStyle.Subgroup, text_format_heading.font())
@@ -551,19 +500,19 @@ def main(args):
 
     # labels at bottom
     now = datetime.now() # current date and time
-    date = now.strftime("%m/%d/%Y")
-    labels_text = ["Map prepared by Farmeye " + date,
-                   "farmeye.ie",
+    date = now.strftime("%d/%m/%Y")
+    labels_text = ["farmeye.ie",
+                   "Map prepared by Farmeye " + date,
                    "Base layer copyright ESRI"]
-
-    if args.farm_name:
-        labels_text.append("Farm: " + args.farm_name)
 
     if args.label_data is not None or "":  # text label identifying polygon label variable
         labels_text.append("Label variable: " + JSON_TO_UI_DICT[args.label_data])
 
     if color_code == 'P index':
         labels_text.append("P index: grass")
+
+    if args.farm_name:
+        labels_text.append("Farm: " + args.farm_name)
 
     n_labels = len(labels_text)
     spacing = 10  # mm?
@@ -586,7 +535,7 @@ def main(args):
     # Create and add the full sized map
     farm_map = QgsLayoutItemMap(layout)
     farm_map.setRect(20, 20, 20, 20)  # DO NOT REMOVE I have no idea what this does, but it is necessary
-    farm_map.setExtent(get_rectangle(new_layer, project))  # Set Map Extent
+    farm_map.setExtent(utils.get_rectangle(new_layer, project))  # Set Map Extent
     layout.addLayoutItem(farm_map)
     # resize map, account for data column width
     farm_map.attemptResize(QgsLayoutSize(page_size.width() - data_col_width - (2*page_padding),
@@ -602,9 +551,9 @@ def main(args):
             farm_map = QgsLayoutItemMap(layout)
             # I have no idea what this does, but it is necessary
             farm_map.setRect(20, 20, 20, 20)
-            farm_map.setExtent(get_rectangle(new_layer, project))  # Set Map Extent
+            farm_map.setExtent(utils.get_rectangle(new_layer, project))  # Set Map Extent
             farm_map.setReferencePoint(QgsLayoutItem.LowerRight)
-            set_frame(farm_map)  # set frame attributes around map
+            utils.set_frame(farm_map)  # set frame attributes around map
             layout.addLayoutItem(farm_map)
             farm_map.attemptResize(QgsLayoutSize((page_size.width()-data_col_width) / 2,
                                                   page_size.width() / 2,
