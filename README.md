@@ -5,9 +5,12 @@
 **21/12/20:** This is a live document. More steps and information will be added as this project progresses.
 
 ## Python Dependencies
-1. PyQT5
-1. python-dotenv
-1. Tkinter
+1. altgraph==0.17
+1. future==0.18.2
+1. pefile==2019.4.18
+1. python-dotenv==0.15.0
+1. pywin32-ctypes==0.2.0
+1. pyqt5
 
 ## Software Installation
 1. Install QGIS in OSGeo4W **(64-bit)**  
@@ -16,8 +19,18 @@
 1. Install Python 3.7 (64-bit)  
     https://www.python.org/downloads/windows/  
     NB **64-bit** Python to match 64-bit QGIS installation  
-1. Install Pycharm (only required for **development**)  
+1. Install git  
+      https://git-scm.com/download/win
+1. **Optional:** Install Pycharm **- only required for development**  
     https://www.jetbrains.com/pycharm/download/#section=windows 
+    
+## Set up application
+1. Clone this repo  
+    `git clone https://github.com/aoifemcdonagh/farmeye-qgis.git`
+1. Update path to QGIS install in batch file `run.bat`  
+1. Install requirements with pip  
+    `python -m pip install -r requirements.txt`  
+1. click `run.bat` in file explorer
 
 ## Set up Pycharm Environment
 1. Open Pycharm
