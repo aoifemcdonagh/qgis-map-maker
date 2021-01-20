@@ -21,6 +21,7 @@ from qgis.PyQt import QtGui
 from PyQt5.QtCore import Qt as qt5
 from pathlib import Path
 from dotenv import load_dotenv
+from datetime import datetime
 import layout_utils
 
 # Identify environment variable file
@@ -548,23 +549,20 @@ def main(args):
         legend.setStyleMargin(QgsLegendStyle.Symbol, 5.0)
         legend.setLineSpacing(5.0)
 
-    if args.farm_name:
-        farm_name_label = QgsLayoutItemLabel(layout)
-        farm_name_label.setText("Farm: " + args.farm_name)
-        farm_name_label.setFont(text_format_heading.font())
-        farm_name_label.adjustSizeToText()
-        layout.addLayoutItem(farm_name_label)
-        farm_name_label.attemptMove(QgsLayoutPoint(15, 450, QgsUnitTypes.LayoutMillimeters))
-
     # labels at bottom
-    labels_text = ["Map prepared by Farmeye",
+    now = datetime.now() # current date and time
+    date = now.strftime("%m/%d/%Y")
+    labels_text = ["Map prepared by Farmeye " + date,
                    "farmeye.ie",
                    "Base layer copyright ESRI"]
+
+    if args.farm_name:
+        labels_text.append("Farm: " + args.farm_name)
 
     if args.label_data is not None or "":  # text label identifying polygon label variable
         labels_text.append("Label variable: " + JSON_TO_UI_DICT[args.label_data])
 
-    if color_code == 'P index' or JSON_TO_UI_DICT[args.label_data] == 'P index':
+    if color_code == 'P index':
         labels_text.append("P index: grass")
 
     n_labels = len(labels_text)
@@ -573,7 +571,7 @@ def main(args):
     for i in range(n_labels):
         label = QgsLayoutItemLabel(layout)
         label.setText(labels_text[i])
-        label.setFont(QtGui.QFont("Ariel", 20))
+        label.setFont(QtGui.QFont("Ariel", 16))
         layout.addLayoutItem(label)
         label.adjustSizeToText()
         label.setReferencePoint(QgsLayoutItem.LowerLeft)
