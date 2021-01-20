@@ -592,9 +592,8 @@ def main(args):
     # scalebar text format
     # set up label text format
     text_format = QgsTextFormat()
-    text_format.setFont(QtGui.QFont("Arial", 36))
-    text_format.setSize(36)
-    text_format.setNamedStyle("bold")
+    text_format.setFont(QtGui.QFont("Arial", 36, QtGui.QFont.Bold))
+    text_format.setSize(40)
     buffer = QgsTextBufferSettings()
     buffer.setEnabled(True)
     buffer.setSize(1.5)
