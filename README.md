@@ -25,6 +25,10 @@
     https://www.jetbrains.com/pycharm/download/#section=windows 
     
 ## Set up application
+1. Verify Python, pip, QGIS and git installations
+    1. Python 3.7
+    1. pip3
+    1. QGIS 3.16 Hannover
 1. Clone this repo  
     `git clone https://github.com/aoifemcdonagh/farmeye-qgis.git`
 1. Update path to QGIS install in batch file `run.bat`  
