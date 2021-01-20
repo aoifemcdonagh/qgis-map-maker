@@ -27,6 +27,39 @@ DEFAULT_PROJECT_DIR = 'projects/'
 Path(DEFAULT_PROJECT_DIR).mkdir(parents=True, exist_ok=True)
 DEFAULT_ATTRIBUTE_NAMES = 'attribute_names.txt'
 
+HECTARE_STRING = 'Area (ha)'
+ACRE_STRING = 'Area (ac)'
+DEFAULT_CONTENT_SIZE = 9 # mm??
+DEFAULT_COL_WIDTH = 45  # mm
+MAX_TABLE_HEIGHT = 480  # mm
+
+"""
+
+    Argument parsing methods
+
+"""
+
+
+def get_table_fields(arguments):
+    json_dict = get_JSON_to_UI()
+    json_fields = ['name', 'referenceArea_ha']  # default fields always present in table
+
+    if arguments.table_fields is not None:
+        for item in arguments.table_fields:
+            json_fields.append(item)
+
+    # convert to UI names
+    UI_names = []
+    for name in json_fields:
+        UI_names.append(json_dict[name])
+
+    if arguments.area_acres:
+        index = UI_names.index(HECTARE_STRING)
+        UI_names.pop(index)
+        UI_names.insert(index, ACRE_STRING)
+
+    return UI_names
+
 
 def get_UI_to_JSON(file=DEFAULT_ATTRIBUTE_NAMES):
     """
@@ -82,6 +115,49 @@ def get_layer(arguments, proj):
         proj.addMapLayer(layer)
 
     return layer
+
+
+def modify_layer(l, a):
+    """
+    Method which modifies layer based on user input
+     - performs sorting of layer features based on 'name' attribute
+     - applies expressions to data
+     - rounds float values to 2 decimal places
+     - changes headings to UI friendly versions
+    :param l:
+    :param a: argument namespace
+    :return:
+    """
+    json_dict = get_JSON_to_UI()
+    count = 0  # number of features in layer
+
+    with edit(l):
+
+        # UI friendly attribute names
+        for field in l.fields():
+            field_id = l.fields().indexFromName(field.name())
+            l.renameAttribute(field_id, json_dict[field.name()])
+
+        # convert area to acres
+        if a.area_acres:
+            field_id = l.fields().indexFromName(HECTARE_STRING)
+            l.renameAttribute(field_id, ACRE_STRING)
+
+            for feature in l.getFeatures():
+                feature.setAttribute(feature.fieldNameIndex(ACRE_STRING), feature[ACRE_STRING]*2.47105)
+                l.updateFeature(feature)
+
+        # round to two decimal places all feature attributes that will go into table
+        for feature in l.getFeatures():
+            count += 1  # iterate count
+            for name in get_table_fields(a):
+                if isinstance(feature[name], float):  # if a float value round to two decimal places
+                    feature.setAttribute(feature.fieldNameIndex(name), round(feature[name], 2))
+                    l.updateFeature(feature)
+
+        # sort based on field name
+
+    return l, count
 
 
 def get_layout(name, proj):
@@ -160,7 +236,7 @@ def set_polygon_style(l, code=None):
         l.setRenderer(renderer)
         l.triggerRepaint()
 
-    elif code.startswith('pH'):
+    elif 'index' in code:  # if an index is used for color coding
         range_list = []
         for c in PH_INDEX_COLORS:
             sym = QgsSymbol.defaultSymbol(l.geometryType())
@@ -183,20 +259,39 @@ def set_polygon_style(l, code=None):
         l.setRenderer(renderer)
 
 
-def set_layer_labels(l, label_data):
+def set_layer_labels(l, label_data='name'):
     label_settings = QgsPalLayerSettings()
     label_settings.drawLabels = True
     label_settings.fieldName = label_data
 
     # set up label text format
     text_format = QgsTextFormat()
-    text_format.setFont(QtGui.QFont("Arial", 10))
+    text_format.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     text_format.setSize(50)
-    text_format.setSizeUnit(QgsUnitTypes.RenderMapUnits)
+    buffer = QgsTextBufferSettings()
+    buffer.setEnabled(True)
+    buffer.setSize(1.5)
+    text_format.setBuffer(buffer)
+    shadow = QgsTextShadowSettings()
+    shadow.setEnabled(True)
+    text_format.setShadow(shadow)
+    text_format.setSizeUnit(QgsUnitTypes.RenderPoints)
     label_settings.setFormat(text_format)
     l.setLabeling(QgsVectorLayerSimpleLabeling(label_settings))
     l.setLabelsEnabled(True)
-    # l.triggerRepaint()
+
+
+def set_frame(layout_item):
+    """
+    Method which sets the frame settings for any QgsLayoutItem
+    :param layout_item: an object which extends QgsLayoutItem (e.g. QgsLayoutItemMap)
+    :return:
+    """
+
+    layout_item.setFrameEnabled(True)
+    layout_item.setFrameStrokeColor(QtGui.QColor(18, 101, 135, 255))
+    layout_item.setFrameStrokeWidth(QgsLayoutMeasurement(5.0, QgsUnitTypes.LayoutMillimeters))
+
 
 
 def get_fonts():
@@ -212,6 +307,29 @@ def get_fonts():
     header.setPointSize(32)
 
     return [content, header]
+
+
+def get_text_formats(n_features):
+    """
+    Method which generates QgsTextFormat objects for headings and content in table
+    size is in points
+    :return:
+    """
+
+    content_size = calculate_font_size(n_features)
+    heading_size = content_size + 1
+
+    heading_format = QgsTextFormat()
+    heading_format.setFont(QtGui.QFont("Arial", 32))
+    heading_format.setSize(heading_size)
+    heading_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
+
+    content_format = QgsTextFormat()
+    content_format.setFont(QtGui.QFont("Arial", 30))
+    content_format.setSize(content_size)
+    content_format.setSizeUnit(QgsUnitTypes.RenderMillimeters)
+
+    return heading_format, content_format
 
 
 def get_project_path(input_string):
@@ -241,3 +359,35 @@ def get_project_path(input_string):
 
     return project_path
 
+
+def calculate_font_size(n_features, size=DEFAULT_CONTENT_SIZE):
+    """
+    calculate the appropriate content font size based on number of features in layer
+    :param n_features:
+    :param size:
+    :return: size of content font to be used
+    """
+
+    # if table with current font size is too large, decrease font size and check again
+    if get_table_height(n_features, size + 1, size) > MAX_TABLE_HEIGHT:
+        # recursive search for font size that doesn't exceed max table height
+        size = calculate_font_size(n_features, size - 1)
+
+    return size
+
+
+def get_table_height(n, h_size, c_size):
+    """
+    Method which gets table height based on font size, and number of features in layer
+    returns height in mm
+    :param n: number of features in layer
+    :param h_size: header font size
+    :param c_size: content font size
+    :return:
+    """
+    margin = 0.75  # num pixels margin
+    line_width = 0.5
+
+    size = h_size + (2*margin) + (2*line_width) + (n*(c_size + (2*margin) + line_width))
+
+    return size
