@@ -72,10 +72,8 @@ Note:
 
 
 ## To Do list
-* define flags for attribute columns from json file
 * ~~create path to QGIS project if it doesn't exist already~~
 * ~~input name of QGIS project instead of full path~~ (project saved to default directory location)
-* add option to include empty column to data table
 * ~~decide what default page size should be~~ :A1
 * dynamically assign sizes to layout items based on page size
 * ~~colour-code polygons based on a given data attribute/column~~
@@ -85,18 +83,18 @@ Note:
 * Table:
     * automatic blank column in table
     * fix frame issue
-    * dynamic font size based on number of rows
+    * ~~dynamic font size based on number of rows~~
     * implement expressions for
-        * rounding numbers
-        * converting ha to ac
+        * ~~rounding numbers~~
+        * ~~converting ha to ac~~
         * sorting by name value
-    * rename table headings 
-        * remove underscores
-        * show correct area unit
+    * ~~rename table headings~~
+        * ~~remove underscores~~
+        * ~~show correct area unit~~
 * ~~fix logo path~~
 * ~~option in GUI to show area in acres~~
-* Legend:
-    * set position - below table?
-    * set legend subgroup heading and legend item fonts
-    * set spacing below and to left of subgroup heading and legend items
-    * rename layer to colour code variable so that it shows up correctly in legend
+* ~~Legend:~~
+    * ~~set position - below table?~~
+    * ~~set legend subgroup heading and legend item fonts~~
+    * ~~set spacing below and to left of subgroup heading and legend items~~
+    * ~~rename layer to colour code variable so that it shows up correctly in legend~~
