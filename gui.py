@@ -110,7 +110,7 @@ class DataInput(tk.Frame):
         # arguments to store
         self.table_fields = None
 
-        self.frm_data = tk.Frame(self, bg="blue")
+        self.frm_data = tk.Frame(self)
         self.frm_data.pack(fill=tk.X, expand=True, padx=20, pady=20)
 
         # initialise global vars
