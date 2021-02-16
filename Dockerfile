@@ -13,7 +13,7 @@ RUN apt install --no-install-recommends --no-install-suggests --allow-unauthenti
 
 # install python
 RUN apt update
-RUN apt install -y --no-install-recommends python3.7 python3-pip
+RUN apt install -y --no-install-recommends python3.7 python3-pip python3-setuptools
 
 
 # If you have multiple Dockerfile steps that use different files from your context, COPY them individually,
