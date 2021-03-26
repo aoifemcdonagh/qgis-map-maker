@@ -562,17 +562,6 @@ def main(args):
                                                 page_size.height() - (50 * c),
                                                 QgsUnitTypes.LayoutMillimeters))
 
-    # add farmeye logo in bottom right corner
-    logo_path = 'images/farmeye_logo.png'
-    logo = QgsLayoutItemPicture(layout)
-    logo.setPicturePath(logo_path)
-    logo.setReferencePoint(QgsLayoutItem.LowerRight)
-    layout.addLayoutItem(logo)
-    logo.attemptResize(QgsLayoutSize(150, 83, QgsUnitTypes.LayoutMillimeters))
-    logo.attemptMove(QgsLayoutPoint(page_size.width() - page_padding - map_padding,
-                                    page_size.height() - page_padding - map_padding,
-                                    QgsUnitTypes.LayoutMillimeters))
-
     #
     # scalebar
     #

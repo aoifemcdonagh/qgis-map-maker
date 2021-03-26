@@ -417,17 +417,6 @@ def main(args):
     table.addFrame(frame)
     # table.recalculateFrameSizes()
 
-    # add farmeye logo in bottom right corner
-    logo_path = 'images/farmeye_logo.png'
-    logo = QgsLayoutItemPicture(layout)
-    logo.setPicturePath(logo_path)
-    logo.setReferencePoint(QgsLayoutItem.LowerRight)
-    layout.addLayoutItem(logo)
-    logo.attemptResize(QgsLayoutSize(150, 85, QgsUnitTypes.LayoutMillimeters))
-    logo.attemptMove(QgsLayoutPoint(page_size.width(),
-                                    page_size.height(),
-                                    QgsUnitTypes.LayoutMillimeters))
-
     # add scalebar
     scalebar = QgsLayoutItemScaleBar(layout)
     scalebar.setStyle('Single Box')
