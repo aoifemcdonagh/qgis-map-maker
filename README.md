@@ -30,7 +30,7 @@
     1. pip3
     1. QGIS 3.16 Hannover
 1. Clone this repo  
-    `git clone https://github.com/aoifemcdonagh/farmeye-qgis.git`
+    `git clone https://github.com/aoifemcdonagh/qgis-map-maker.git`
 1. Update path to QGIS install in batch file `run.bat`  
 1. Install requirements with pip  
     `python -m pip install -r requirements.txt`  
