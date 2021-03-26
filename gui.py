@@ -441,7 +441,7 @@ if __name__ == "__main__":
 
     #root.maxsize(500, 500)
 
-    #heading = tk.Label(root, text="Farmeye QGIS Layout Builder", width=50, height=5)
+    #heading = tk.Label(root, text="QGIS Layout Builder", width=50, height=5)
     #heading.pack()
 
     MainApplication(root).pack(side="top", fill="both", expand=True)
